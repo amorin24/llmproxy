@@ -77,8 +77,12 @@ func LogResponse(fields LogFields) {
 	}
 	
 	if fields.Response != "" {
-		if len(fields.Response) > 100 {
-			logFields["response"] = fields.Response[:100] + "..."
+		truncationLimit := getTruncationLimit()
+		if len(fields.Response) > truncationLimit {
+			logFields["response"] = fields.Response[:truncationLimit] + "..."
+			if logrus.GetLevel() == logrus.DebugLevel {
+				logFields["full_response"] = fields.Response
+			}
 		} else {
 			logFields["response"] = fields.Response
 		}
