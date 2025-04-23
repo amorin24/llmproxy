@@ -6,10 +6,27 @@ A Go-based proxy system for routing requests to multiple Large Language Models (
 
 - Dynamic routing to multiple LLM providers
 - Model selection based on task type and availability
+- Comprehensive error handling with retries and fallbacks
+- Detailed structured logging for requests, responses, and errors
 - Caching for frequently requested queries
 - Simple web UI for testing and interaction
-- Logging and monitoring
 - Containerization for deployment
+
+## Error Handling Features
+
+- Timeout handling with automatic retries
+- Rate-limiting detection and handling
+- Fallback to alternative models when errors occur
+- Graceful handling of API errors with user-friendly messages
+- Exponential backoff with jitter for retries
+
+## Logging Features
+
+- Structured JSON logging for easy analysis
+- Detailed request logging (model, timestamp, query)
+- Comprehensive response logging (model, response time, tokens, status code)
+- Error logging with error types and details
+- Request ID tracking across the system
 
 ## Prerequisites
 
@@ -29,10 +46,18 @@ CLAUDE_API_KEY=your_claude_api_key
 
 # Server configuration
 PORT=8080
+LOG_LEVEL=info
 
 # Cache configuration
 CACHE_ENABLED=true
 CACHE_TTL=300
+
+# Retry Configuration
+MAX_RETRIES=3
+INITIAL_BACKOFF=1000
+MAX_BACKOFF=30000
+BACKOFF_FACTOR=2.0
+JITTER=0.1
 ```
 
 ## Running Locally
@@ -58,7 +83,8 @@ docker-compose up --build
     {
       "query": "Your query text",
       "model": "openai|gemini|mistral|claude", // Optional
-      "task_type": "text_generation|summarization|sentiment_analysis|question_answering" // Optional
+      "task_type": "text_generation|summarization|sentiment_analysis|question_answering", // Optional
+      "request_id": "optional-request-id-for-tracking" // Optional
     }
     ```
 
@@ -74,10 +100,12 @@ The LLM Proxy System is built with a modular architecture:
 
 - **Configuration**: Environment variables for API keys and settings
 - **Models**: Data structures for requests and responses
+- **Errors**: Standardized error types and handling
+- **Retry**: Configurable retry mechanism with exponential backoff
 - **Caching**: In-memory caching for frequently requested queries
-- **Logging**: Structured logging for requests and responses
-- **LLM Clients**: Separate clients for each LLM provider
-- **Router**: Dynamic routing based on task type and availability
+- **Logging**: Structured logging for requests, responses, and errors
+- **LLM Clients**: Separate clients for each LLM provider with error handling
+- **Router**: Dynamic routing based on task type and availability with fallbacks
 - **API Handlers**: RESTful API endpoints for queries and status
 - **Web UI**: Simple interface for testing and interaction
 

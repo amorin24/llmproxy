@@ -2,14 +2,17 @@ package llm
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/amorin24/llmproxy/pkg/config"
+	myerrors "github.com/amorin24/llmproxy/pkg/errors"
+	"github.com/amorin24/llmproxy/pkg/models"
+	"github.com/amorin24/llmproxy/pkg/retry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,9 +33,15 @@ type MistralResponse struct {
 		Message struct {
 			Content string `json:"content"`
 		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
+	Usage struct {
+		TotalTokens int `json:"total_tokens"`
+	} `json:"usage"`
 	Error struct {
 		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code"`
 	} `json:"error"`
 }
 
@@ -45,9 +54,31 @@ func NewMistralClient() *MistralClient {
 	}
 }
 
-func (c *MistralClient) Query(query string) (string, error) {
+func (c *MistralClient) GetModelType() models.ModelType {
+	return models.Mistral
+}
+
+func (c *MistralClient) Query(ctx context.Context, query string) (*QueryResult, error) {
 	if c.apiKey == "" {
-		return "", errors.New("Mistral API key not configured")
+		return nil, myerrors.NewModelError(string(models.Mistral), 401, myerrors.ErrAPIKeyMissing, false)
+	}
+
+	retryFunc := func() (interface{}, error) {
+		return c.executeQuery(ctx, query)
+	}
+
+	result, err := retry.Do(ctx, retryFunc, retry.DefaultConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*QueryResult), nil
+}
+
+func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryResult, error) {
+	startTime := time.Now()
+	result := &QueryResult{
+		NumRetries: 0,
 	}
 
 	reqBody, err := json.Marshal(MistralRequest{
@@ -62,12 +93,12 @@ func (c *MistralClient) Query(query string) (string, error) {
 		MaxTokens:   150,
 	})
 	if err != nil {
-		return "", fmt.Errorf("error marshaling request: %v", err)
+		return nil, myerrors.NewModelError(string(models.Mistral), 500, fmt.Errorf("error marshaling request: %v", err), false)
 	}
 
-	req, err := http.NewRequest("POST", "https://api.mistral.ai/v1/chat/completions", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.mistral.ai/v1/chat/completions", bytes.NewBuffer(reqBody))
 	if err != nil {
-		return "", fmt.Errorf("error creating request: %v", err)
+		return nil, myerrors.NewModelError(string(models.Mistral), 500, fmt.Errorf("error creating request: %v", err), false)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -75,30 +106,48 @@ func (c *MistralClient) Query(query string) (string, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("error sending request: %v", err)
+		if ctx.Err() != nil {
+			return nil, myerrors.NewTimeoutError(string(models.Mistral))
+		}
+		return nil, myerrors.NewModelError(string(models.Mistral), 500, fmt.Errorf("error sending request: %v", err), true)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading response: %v", err)
+		return nil, myerrors.NewModelError(string(models.Mistral), 500, fmt.Errorf("error reading response: %v", err), false)
 	}
 
 	var mistralResp MistralResponse
 	err = json.Unmarshal(body, &mistralResp)
 	if err != nil {
-		return "", fmt.Errorf("error unmarshaling response: %v", err)
+		return nil, myerrors.NewInvalidResponseError(string(models.Mistral), err)
 	}
 
+	result.StatusCode = resp.StatusCode
+	result.ResponseTime = time.Since(startTime).Milliseconds()
+
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API error: %s", mistralResp.Error.Message)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return nil, myerrors.NewRateLimitError(string(models.Mistral))
+		}
+		
+		errorMsg := mistralResp.Error.Message
+		if errorMsg == "" {
+			errorMsg = fmt.Sprintf("API error with status code: %d", resp.StatusCode)
+		}
+		
+		return nil, myerrors.NewModelError(string(models.Mistral), resp.StatusCode, fmt.Errorf("%s", errorMsg), resp.StatusCode >= 500)
 	}
 
 	if len(mistralResp.Choices) == 0 {
-		return "", errors.New("no response from Mistral API")
+		return nil, myerrors.NewEmptyResponseError(string(models.Mistral))
 	}
 
-	return mistralResp.Choices[0].Message.Content, nil
+	result.Response = mistralResp.Choices[0].Message.Content
+	result.NumTokens = mistralResp.Usage.TotalTokens
+
+	return result, nil
 }
 
 func (c *MistralClient) CheckAvailability() bool {
@@ -106,7 +155,10 @@ func (c *MistralClient) CheckAvailability() bool {
 		return false
 	}
 
-	req, err := http.NewRequest("GET", "https://api.mistral.ai/v1/models", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.mistral.ai/v1/models", nil)
 	if err != nil {
 		logrus.WithError(err).Error("Error creating Mistral availability request")
 		return false

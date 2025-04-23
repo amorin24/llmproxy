@@ -17,6 +17,10 @@
         
         <div class="query-container">
             <h2>Query LLM</h2>
+            
+            <!-- Error message container -->
+            <div id="error-message" class="error-message" style="display: none;"></div>
+            
             <div class="form-group">
                 <label for="model">Model:</label>
                 <select id="model">
@@ -48,8 +52,9 @@
             
             <div class="response-container">
                 <h3>Response</h3>
-                <div id="response-info"></div>
-                <div id="response"></div>
+                <div id="response-info" class="response-info"></div>
+                <div id="response" class="response-content"></div>
+                <div id="response-metadata" class="response-metadata"></div>
             </div>
         </div>
     </div>
