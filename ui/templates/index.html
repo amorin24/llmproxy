@@ -4,18 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Proxy UI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
-<body>
+<body class="light-theme">
+    <div class="theme-toggle">
+        <button id="theme-toggle-btn" aria-label="Toggle dark/light mode">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+    
     <div class="container">
-        <h1>LLM Proxy System</h1>
+        <h1 class="app-title">LLM Proxy System</h1>
         
-        <div class="status-container">
+        <div class="status-container card">
             <h2>Model Status</h2>
-            <div id="status">Loading status...</div>
+            <div id="status" class="status-grid">Loading status...</div>
         </div>
         
-        <div class="query-container">
+        <div class="query-container card">
             <h2>Query LLM</h2>
             
             <!-- Error message container -->
@@ -23,40 +33,51 @@
             
             <div class="form-group">
                 <label for="model">Model:</label>
-                <select id="model">
-                    <option value="">Auto (based on task)</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="gemini">Gemini</option>
-                    <option value="mistral">Mistral</option>
-                    <option value="claude">Claude</option>
-                </select>
+                <div class="select-wrapper">
+                    <select id="model" class="custom-select">
+                        <option value="">Auto (based on task)</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="mistral">Mistral</option>
+                        <option value="claude">Claude</option>
+                    </select>
+                    <i class="fas fa-chevron-down select-icon"></i>
+                </div>
             </div>
             
             <div class="form-group">
                 <label for="task-type">Task Type:</label>
-                <select id="task-type">
-                    <option value="">Auto</option>
-                    <option value="text_generation">Text Generation</option>
-                    <option value="summarization">Summarization</option>
-                    <option value="sentiment_analysis">Sentiment Analysis</option>
-                    <option value="question_answering">Question Answering</option>
-                </select>
+                <div class="select-wrapper">
+                    <select id="task-type" class="custom-select">
+                        <option value="">Auto</option>
+                        <option value="text_generation">Text Generation</option>
+                        <option value="summarization">Summarization</option>
+                        <option value="sentiment_analysis">Sentiment Analysis</option>
+                        <option value="question_answering">Question Answering</option>
+                    </select>
+                    <i class="fas fa-chevron-down select-icon"></i>
+                </div>
             </div>
             
             <div class="form-group">
                 <label for="query">Query:</label>
-                <textarea id="query" rows="4" placeholder="Enter your query here..."></textarea>
+                <textarea id="query" rows="4" class="custom-input" placeholder="Ask your question..."></textarea>
             </div>
             
-            <button id="submit-btn">Submit</button>
-            
-            <div class="response-container">
-                <h3>Response</h3>
-                <div id="response-info" class="response-info"></div>
-                <div id="response" class="response-content"></div>
-                <div id="token-usage" class="token-usage"></div>
-                <div id="response-metadata" class="response-metadata"></div>
-            </div>
+            <button id="submit-btn" class="submit-button">
+                <span class="button-text">Submit</span>
+                <div class="button-loader" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+            </button>
+        </div>
+        
+        <div class="response-container card">
+            <h3>Response</h3>
+            <div id="response-info" class="response-info"></div>
+            <div id="response" class="response-content"></div>
+            <div id="token-usage" class="token-usage"></div>
+            <div id="response-metadata" class="response-metadata"></div>
         </div>
     </div>
     
