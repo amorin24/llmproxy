@@ -52,8 +52,9 @@ type OpenAIResponse struct {
 }
 
 func NewOpenAIClient() *OpenAIClient {
+	apiKey, _ := config.GetConfig().GetAPIKey("openai")
 	return &OpenAIClient{
-		apiKey: config.GetConfig().OpenAIAPIKey,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},

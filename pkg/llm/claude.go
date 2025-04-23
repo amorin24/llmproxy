@@ -51,8 +51,9 @@ type ClaudeResponse struct {
 }
 
 func NewClaudeClient() *ClaudeClient {
+	apiKey, _ := config.GetConfig().GetAPIKey("claude")
 	return &ClaudeClient{
-		apiKey: config.GetConfig().ClaudeAPIKey,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
