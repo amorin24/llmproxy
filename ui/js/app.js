@@ -8,8 +8,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const buttonLoader = submitBtn.querySelector('.button-loader');
     const responseInfoEl = document.getElementById('response-info');
     const responseEl = document.getElementById('response');
+    const copyBtn = document.getElementById('copy-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const downloadOptions = document.querySelectorAll('.download-option');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const themeIcon = themeToggleBtn.querySelector('i');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.querySelector('.sidebar-overlay');
     let tempErrorEl = null;
     
     function initTheme() {
@@ -33,6 +39,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateThemeIcon(theme) {
         themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+        document.body.classList.toggle('sidebar-open');
+        
+        addRippleEffect(sidebarToggleBtn);
+    }
+    
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
     }
     
     function addRippleEffect(element) {
@@ -144,6 +164,48 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const responseContainer = document.querySelector('.response-container');
         responseContainer.classList.add('loading-response');
+        
+        // TESTING MODE - Always use test mode for now
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            buttonText.style.opacity = '1';
+            buttonLoader.style.display = 'none';
+            
+            const data = {
+                response: "This is a simulated response for testing purposes. The actual LLM models are currently unavailable. This response allows testing of the copy and download functionality.",
+                model: selectedModel || "openai",
+                response_time_ms: 1250,
+                cached: false,
+                input_tokens: 15,
+                output_tokens: 25,
+                total_tokens: 40,
+                num_retries: 0
+            };
+            
+            let infoHtml = `
+                <div class="response-meta-item"><strong>Model:</strong> ${data.model}</div>
+                <div class="response-meta-item"><strong>Response Time:</strong> ${data.response_time_ms}ms</div>
+                <div class="response-meta-item"><strong>Cached:</strong> No</div>
+            `;
+            
+            responseInfoEl.innerHTML = infoHtml;
+            
+            const tokenUsageEl = document.getElementById('token-usage');
+            let tokenHtml = `<h4>Token Usage</h4>`;
+            tokenHtml += `<div class="token-breakdown">`;
+            tokenHtml += `<div><strong>Total:</strong> ${data.total_tokens}</div>`;
+            tokenHtml += `<div><strong>Input:</strong> ${data.input_tokens}</div>`;
+            tokenHtml += `<div><strong>Output:</strong> ${data.output_tokens}</div>`;
+            tokenHtml += `</div>`;
+            tokenUsageEl.innerHTML = tokenHtml;
+            tokenUsageEl.style.display = 'block';
+            
+            typeWriterEffect(responseEl, data.response);
+            
+            responseContainer.classList.remove('loading-response');
+        }, 1500);
+        
+        return;
         
         fetch('/api/query', {
             method: 'POST',
@@ -307,8 +369,230 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function copyToClipboard() {
+        const responseText = responseEl.textContent;
+        
+        if (!responseText) {
+            showError('No response to copy');
+            return;
+        }
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(responseText)
+                .then(() => {
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    addRippleEffect(copyBtn);
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    showError('Failed to copy to clipboard');
+                });
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = responseText;
+            textarea.style.position = 'fixed';  // Avoid scrolling to bottom
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    addRippleEffect(copyBtn);
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                    }, 2000);
+                } else {
+                    showError('Failed to copy to clipboard');
+                }
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showError('Failed to copy to clipboard');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+    }
+    
+    function downloadAsTxt() {
+        const responseText = responseEl.textContent;
+        
+        if (!responseText) {
+            showError('No response to download');
+            return;
+        }
+        
+        const blob = new Blob([responseText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `llm-response-${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        addRippleEffect(downloadBtn);
+    }
+    
+    function downloadAsPdf() {
+        const responseText = responseEl.textContent;
+        
+        if (!responseText) {
+            showError('No response to download');
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(16);
+            doc.text('LLM Response', 20, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+            
+            doc.setFontSize(12);
+            const splitText = doc.splitTextToSize(responseText, 170);
+            doc.text(splitText, 20, 40);
+            
+            doc.save(`llm-response-${new Date().toISOString().slice(0, 10)}.pdf`);
+        };
+        
+        script.onerror = function() {
+            showError('Failed to load PDF generation library');
+        };
+        
+        document.head.appendChild(script);
+        addRippleEffect(downloadBtn);
+    }
+    
+    function downloadAsDocx() {
+        const responseText = responseEl.textContent;
+        
+        if (!responseText) {
+            showError('No response to download');
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/docx@7.8.2/build/index.js';
+        script.onload = function() {
+            const { Document, Packer, Paragraph, TextRun } = window.docx;
+            
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: 'LLM Response',
+                                    bold: true,
+                                    size: 28
+                                })
+                            ]
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Generated on: ${new Date().toLocaleString()}`,
+                                    size: 20,
+                                    italics: true
+                                })
+                            ]
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: responseText,
+                                    size: 24
+                                })
+                            ]
+                        })
+                    ]
+                }]
+            });
+            
+            Packer.toBlob(doc).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `llm-response-${new Date().toISOString().slice(0, 10)}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        };
+        
+        script.onerror = function() {
+            showError('Failed to load DOCX generation library');
+        };
+        
+        document.head.appendChild(script);
+        addRippleEffect(downloadBtn);
+    }
+    
     themeToggleBtn.addEventListener('click', toggleTheme);
     submitBtn.addEventListener('click', submitQuery);
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    copyBtn.addEventListener('click', copyToClipboard);
+    
+    downloadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const downloadOptions = document.querySelector('.download-options');
+        downloadOptions.classList.toggle('show');
+        
+        document.addEventListener('click', function closeDropdown(event) {
+            if (!downloadBtn.contains(event.target) && !downloadOptions.contains(event.target)) {
+                downloadOptions.classList.remove('show');
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+        
+        addRippleEffect(downloadBtn);
+    });
+    
+    document.querySelectorAll('.download-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const format = this.dataset.format;
+            
+            switch(format) {
+                case 'txt':
+                    downloadAsTxt();
+                    break;
+                case 'pdf':
+                    downloadAsPdf();
+                    break;
+                case 'docx':
+                    downloadAsDocx();
+                    break;
+            }
+            
+            document.querySelector('.download-options').classList.remove('show');
+        });
+    });
+    
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (window.innerWidth <= 992) {
+                closeSidebar();
+            }
+        });
+    });
     
     initTheme();
     fetchStatus();

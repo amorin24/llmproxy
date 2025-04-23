@@ -24,8 +24,7 @@ func main() {
 	r.HandleFunc("/api/query", handler.QueryHandler).Methods("POST")
 	r.HandleFunc("/api/status", handler.StatusHandler).Methods("GET")
 
-	fs := http.FileServer(http.Dir("./ui"))
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./ui"))))
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join("ui", "templates", "index.html"))
