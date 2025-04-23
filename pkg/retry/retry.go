@@ -79,5 +79,5 @@ func calculateBackoff(attempt int, cfg Config) time.Duration {
     jitterAmount := backoff * cfg.Jitter
     backoff = backoff + (rand.Float64()*jitterAmount*2 - jitterAmount)
     
-    return time.Duration(backoff)
+    return time.Duration(math.Round(backoff))
 }
