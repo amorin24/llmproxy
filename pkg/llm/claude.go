@@ -151,7 +151,11 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string) (*QueryRe
 	}
 
 	result.Response = claudeResp.Content[0].Text
-	result.NumTokens = claudeResp.Usage.InputTokens + claudeResp.Usage.OutputTokens
+	result.InputTokens = claudeResp.Usage.InputTokens
+	result.OutputTokens = claudeResp.Usage.OutputTokens
+	result.TotalTokens = result.InputTokens + result.OutputTokens
+	result.NumTokens = result.TotalTokens // For backward compatibility
+	EstimateTokens(result, query, result.Response)
 
 	return result, nil
 }

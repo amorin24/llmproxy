@@ -11,7 +11,10 @@ type QueryResult struct {
 	Response        string
 	ResponseTime    int64
 	StatusCode      int
-	NumTokens       int
+	InputTokens     int
+	OutputTokens    int
+	TotalTokens     int
+	NumTokens       int // Deprecated: Use TotalTokens instead
 	NumRetries      int
 	Error           error
 }
@@ -34,5 +37,20 @@ func Factory(modelType models.ModelType) (Client, error) {
 		return NewClaudeClient(), nil
 	default:
 		return nil, myerrors.NewModelError(string(modelType), 400, myerrors.ErrUnavailable, false)
+	}
+}
+func EstimateTokenCount(text string) int {
+	if text == "" {
+		return 0
+	}
+	return len(text) / 4
+}
+
+func EstimateTokens(result *QueryResult, query, response string) {
+	if result.TotalTokens == 0 {
+		result.InputTokens = EstimateTokenCount(query)
+		result.OutputTokens = EstimateTokenCount(response)
+		result.TotalTokens = result.InputTokens + result.OutputTokens
+		result.NumTokens = result.TotalTokens // For backward compatibility
 	}
 }

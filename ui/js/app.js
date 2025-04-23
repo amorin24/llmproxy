@@ -100,7 +100,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <strong>Cached:</strong> ${cached}
                 `;
                 
-                if (data.num_tokens) {
+                if (data.total_tokens) {
+                    infoHtml += ` | <strong>Tokens:</strong> ${data.total_tokens}`;
+                    
+                    if (data.input_tokens && data.output_tokens) {
+                        infoHtml += ` (in: ${data.input_tokens}, out: ${data.output_tokens})`;
+                    }
+                } else if (data.num_tokens) {
                     infoHtml += ` | <strong>Tokens:</strong> ${data.num_tokens}`;
                 }
                 
@@ -115,6 +121,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.request_id) {
                     infoHtml += ` | <strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...`;
+                }
+                
+                const tokenUsageEl = document.getElementById('token-usage');
+                if (data.total_tokens || data.input_tokens || data.output_tokens) {
+                    let tokenHtml = `<h4>Token Usage</h4>`;
+                    tokenHtml += `<div class="token-breakdown">`;
+                    
+                    if (data.total_tokens) {
+                        tokenHtml += `<div><strong>Total:</strong> ${data.total_tokens}</div>`;
+                    } else if (data.num_tokens) {
+                        tokenHtml += `<div><strong>Total:</strong> ${data.num_tokens}</div>`;
+                    }
+                    
+                    if (data.input_tokens) {
+                        tokenHtml += `<div><strong>Input:</strong> ${data.input_tokens}</div>`;
+                    }
+                    
+                    if (data.output_tokens) {
+                        tokenHtml += `<div><strong>Output:</strong> ${data.output_tokens}</div>`;
+                    }
+                    
+                    tokenHtml += `</div>`;
+                    tokenUsageEl.innerHTML = tokenHtml;
+                    tokenUsageEl.style.display = 'block';
+                } else {
+                    tokenUsageEl.style.display = 'none';
                 }
                 
                 responseInfoEl.innerHTML = infoHtml;

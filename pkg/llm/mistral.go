@@ -36,7 +36,9 @@ type MistralResponse struct {
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
 	Usage struct {
-		TotalTokens int `json:"total_tokens"`
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
 	} `json:"usage"`
 	Error struct {
 		Message string `json:"message"`
@@ -145,7 +147,11 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryR
 	}
 
 	result.Response = mistralResp.Choices[0].Message.Content
-	result.NumTokens = mistralResp.Usage.TotalTokens
+	result.InputTokens = mistralResp.Usage.PromptTokens
+	result.OutputTokens = mistralResp.Usage.CompletionTokens
+	result.TotalTokens = mistralResp.Usage.TotalTokens
+	result.NumTokens = result.TotalTokens // For backward compatibility
+	EstimateTokens(result, query, result.Response)
 
 	return result, nil
 }

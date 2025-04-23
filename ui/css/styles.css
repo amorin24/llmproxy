@@ -141,3 +141,32 @@ button:hover {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+.token-usage {
+    background-color: #eaf7ff;
+    border-left: 4px solid #3498db;
+    padding: 12px;
+    margin: 15px 0;
+    border-radius: 4px;
+    display: none;
+}
+
+.token-usage h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #2980b9;
+}
+
+.token-breakdown {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.token-breakdown div {
+    flex-basis: 30%;
+    margin-bottom: 5px;
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 3px;
+}

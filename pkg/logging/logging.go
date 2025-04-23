@@ -18,7 +18,10 @@ type LogFields struct {
 	StatusCode      int
 	Timestamp       time.Time
 	RequestID       string
-	NumTokens       int
+	InputTokens     int
+	OutputTokens    int
+	TotalTokens     int
+	NumTokens       int // Deprecated: Use TotalTokens instead
 	NumRetries      int
 	OriginalModel   string
 	FallbackModel   string
@@ -68,7 +71,15 @@ func LogResponse(fields LogFields) {
 		"event_type":    "llm_response",
 	}
 	
-	if fields.NumTokens > 0 {
+	if fields.TotalTokens > 0 {
+		logFields["total_tokens"] = fields.TotalTokens
+		if fields.InputTokens > 0 {
+			logFields["input_tokens"] = fields.InputTokens
+		}
+		if fields.OutputTokens > 0 {
+			logFields["output_tokens"] = fields.OutputTokens
+		}
+	} else if fields.NumTokens > 0 {
 		logFields["num_tokens"] = fields.NumTokens
 	}
 	
@@ -77,7 +88,7 @@ func LogResponse(fields LogFields) {
 	}
 	
 	if fields.Response != "" {
-		truncationLimit := getTruncationLimit()
+		truncationLimit := 500 // Default truncation limit for responses
 		if len(fields.Response) > truncationLimit {
 			logFields["response"] = fields.Response[:truncationLimit] + "..."
 			if logrus.GetLevel() == logrus.DebugLevel {
