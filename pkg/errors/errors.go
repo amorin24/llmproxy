@@ -8,7 +8,7 @@ import (
 var (
     ErrTimeout        = errors.New("request timed out")
     ErrRateLimit      = errors.New("rate limit exceeded")
-    ErrInvalidResponse = errors.New("invalid response from LLM")
+    ErrInvalidResponse = errors.New("invalid response")
     ErrEmptyResponse  = errors.New("empty response from LLM")
     ErrAPIKeyMissing  = errors.New("API key not configured")
     ErrUnavailable    = errors.New("service unavailable")
@@ -22,7 +22,13 @@ type ModelError struct {
 }
 
 func (e *ModelError) Error() string {
-    return fmt.Sprintf("model %s error: %v (code: %d)", e.Model, e.Err, e.Code)
+    var errMsg string
+    if e.Err == nil || e.Err.Error() == "" {
+        errMsg = "unknown error"
+    } else {
+        errMsg = e.Err.Error()
+    }
+    return fmt.Sprintf("model %s error: %s (code: %d)", e.Model, errMsg, e.Code)
 }
 
 func (e *ModelError) Unwrap() error {
@@ -51,7 +57,7 @@ func NewInvalidResponseError(model string, err error) *ModelError {
 }
 
 func NewEmptyResponseError(model string) *ModelError {
-    return NewModelError(model, 500, ErrEmptyResponse, true)
+    return NewModelError(model, 500, ErrEmptyResponse, false)
 }
 
 func NewUnavailableError(model string) *ModelError {

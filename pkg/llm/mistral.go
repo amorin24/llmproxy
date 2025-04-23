@@ -48,8 +48,9 @@ type MistralResponse struct {
 }
 
 func NewMistralClient() *MistralClient {
+	apiKey, _ := config.GetConfig().GetAPIKey("mistral")
 	return &MistralClient{
-		apiKey: config.GetConfig().MistralAPIKey,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},

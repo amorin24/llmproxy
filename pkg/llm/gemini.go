@@ -59,8 +59,9 @@ type GeminiResponse struct {
 }
 
 func NewGeminiClient() *GeminiClient {
+	apiKey, _ := config.GetConfig().GetAPIKey("gemini")
 	return &GeminiClient{
-		apiKey: config.GetConfig().GeminiAPIKey,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
