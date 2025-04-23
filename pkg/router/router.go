@@ -1,11 +1,14 @@
 package router
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"time"
 
+	myerrors "github.com/amorin24/llmproxy/pkg/errors"
 	"github.com/amorin24/llmproxy/pkg/llm"
+	"github.com/amorin24/llmproxy/pkg/logging"
 	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/sirupsen/logrus"
 )
@@ -61,9 +64,10 @@ func (r *Router) GetAvailability() models.StatusResponse {
 	}
 }
 
-func (r *Router) RouteRequest(req models.QueryRequest) (models.ModelType, error) {
+func (r *Router) RouteRequest(ctx context.Context, req models.QueryRequest) (models.ModelType, error) {
 	if req.Model != "" {
 		if r.isModelAvailable(req.Model) {
+			logging.LogRouterActivity(string(req.Model), string(req.Model), string(req.TaskType), "user_preference")
 			return req.Model, nil
 		}
 		logrus.WithField("model", req.Model).Warn("Requested model not available, trying alternatives")
@@ -72,6 +76,7 @@ func (r *Router) RouteRequest(req models.QueryRequest) (models.ModelType, error)
 	if req.TaskType != "" {
 		model, err := r.routeByTaskType(req.TaskType)
 		if err == nil {
+			logging.LogRouterActivity("", string(model), string(req.TaskType), "task_type")
 			return model, nil
 		}
 		logrus.WithError(err).Warn("Failed to route by task type")
@@ -79,9 +84,30 @@ func (r *Router) RouteRequest(req models.QueryRequest) (models.ModelType, error)
 
 	model, err := r.getRandomAvailableModel()
 	if err != nil {
-		return "", errors.New("no LLM providers available")
+		return "", myerrors.NewUnavailableError("all")
 	}
+	
+	logging.LogRouterActivity(string(req.Model), string(model), string(req.TaskType), "fallback")
 	return model, nil
+}
+
+func (r *Router) FallbackOnError(ctx context.Context, originalModel models.ModelType, req models.QueryRequest, err error) (models.ModelType, error) {
+	var modelErr *myerrors.ModelError
+	if !errors.As(err, &modelErr) || !modelErr.Retryable {
+		return "", err
+	}
+
+	availableModels := r.getAvailableModelsExcept(originalModel)
+	if len(availableModels) == 0 {
+		return "", myerrors.NewUnavailableError("all")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	fallbackModel := availableModels[rand.Intn(len(availableModels))]
+	
+	logging.LogRouterActivity(string(originalModel), string(fallbackModel), string(req.TaskType), "error_fallback")
+	
+	return fallbackModel, nil
 }
 
 func (r *Router) isModelAvailable(model models.ModelType) bool {
@@ -129,9 +155,26 @@ func (r *Router) getRandomAvailableModel() (models.ModelType, error) {
 	}
 
 	if len(availableModelTypes) == 0 {
-		return "", errors.New("no LLM providers available")
+		return "", myerrors.NewUnavailableError("all")
 	}
 
 	rand.Seed(time.Now().UnixNano())
 	return availableModelTypes[rand.Intn(len(availableModelTypes))], nil
+}
+
+func (r *Router) getAvailableModelsExcept(excludeModel models.ModelType) []models.ModelType {
+	if !r.testMode {
+		r.UpdateAvailability()
+	}
+
+	var availableModelTypes []models.ModelType
+	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude}
+
+	for _, modelType := range modelTypes {
+		if modelType != excludeModel && r.availableModels[modelType] {
+			availableModelTypes = append(availableModelTypes, modelType)
+		}
+	}
+
+	return availableModelTypes
 }
