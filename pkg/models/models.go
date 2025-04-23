@@ -36,7 +36,10 @@ type QueryResponse struct {
 	Cached        bool      `json:"cached"`
 	Error         string    `json:"error,omitempty"`
 	ErrorType     string    `json:"error_type,omitempty"`
-	NumTokens     int       `json:"num_tokens,omitempty"`
+	InputTokens   int       `json:"input_tokens,omitempty"`
+	OutputTokens  int       `json:"output_tokens,omitempty"`
+	TotalTokens   int       `json:"total_tokens,omitempty"`
+	NumTokens     int       `json:"num_tokens,omitempty"` // Deprecated: Use TotalTokens instead
 	NumRetries    int       `json:"num_retries,omitempty"`
 	RequestID     string    `json:"request_id,omitempty"`
 	OriginalModel ModelType `json:"original_model,omitempty"` // If fallback occurred

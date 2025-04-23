@@ -163,9 +163,12 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string) (*QueryRe
 
 	result.Response = geminiResp.Candidates[0].Content.Parts[0].Text
 	
-	if len(geminiResp.Candidates) > 0 {
-		result.NumTokens = geminiResp.Candidates[0].TokenCount.TotalTokens
+	if len(geminiResp.Candidates) > 0 && geminiResp.Candidates[0].TokenCount.TotalTokens > 0 {
+		result.TotalTokens = geminiResp.Candidates[0].TokenCount.TotalTokens
+		result.NumTokens = result.TotalTokens // For backward compatibility
 	}
+	
+	EstimateTokens(result, query, result.Response)
 
 	return result, nil
 }

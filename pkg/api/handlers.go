@@ -166,7 +166,10 @@ func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		Timestamp:    time.Now(),
 		Cached:       false,
 		RequestID:    requestID,
-		NumTokens:    result.NumTokens,
+		InputTokens:  result.InputTokens,
+		OutputTokens: result.OutputTokens,
+		TotalTokens:  result.TotalTokens,
+		NumTokens:    result.NumTokens, // For backward compatibility
 		NumRetries:   result.NumRetries,
 	}
 

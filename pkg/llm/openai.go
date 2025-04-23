@@ -40,7 +40,9 @@ type OpenAIResponse struct {
 		} `json:"message"`
 	} `json:"choices"`
 	Usage struct {
-		TotalTokens int `json:"total_tokens"`
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
 	} `json:"usage"`
 	Error struct {
 		Message string `json:"message"`
@@ -149,7 +151,10 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string) (*QueryRe
 	}
 
 	result.Response = openAIResp.Choices[0].Message.Content
-	result.NumTokens = openAIResp.Usage.TotalTokens
+	result.InputTokens = openAIResp.Usage.PromptTokens
+	result.OutputTokens = openAIResp.Usage.CompletionTokens
+	result.TotalTokens = openAIResp.Usage.TotalTokens
+	result.NumTokens = result.TotalTokens // For backward compatibility
 
 	return result, nil
 }

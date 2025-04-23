@@ -27,6 +27,7 @@ A Go-based proxy system for routing requests to multiple Large Language Models (
 - Comprehensive response logging (model, response time, tokens, status code)
 - Error logging with error types and details
 - Request ID tracking across the system
+- Token usage tracking and logging
 
 ## Prerequisites
 
@@ -93,6 +94,21 @@ docker-compose up --build
 ## Web UI
 
 Access the web UI at `http://localhost:8080`
+
+## Token Usage Tracking
+
+The LLM Proxy System tracks token usage for all LLM providers:
+
+- **Detailed Token Breakdown**: Tracks input tokens, output tokens, and total tokens for each request
+- **Provider-Specific Implementation**:
+  - OpenAI: Uses the detailed token information provided in the API response
+  - Mistral: Uses the detailed token information provided in the API response
+  - Claude: Uses the input and output token counts from the API response
+  - Gemini: Uses token information when available, falls back to estimation
+- **Token Estimation**: For providers with limited token information, the system estimates token usage based on input/output text length
+- **UI Display**: Token usage is displayed in a dedicated section in the web UI
+- **Logging**: Token usage is included in structured logs for monitoring and analysis
+- **Backward Compatibility**: Maintains the original `num_tokens` field while adding more detailed token tracking
 
 ## Architecture
 
