@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Proxy UI</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>LLM Proxy System</h1>
+        
+        <div class="status-container">
+            <h2>Model Status</h2>
+            <div id="status">Loading status...</div>
+        </div>
+        
+        <div class="query-container">
+            <h2>Query LLM</h2>
+            <div class="form-group">
+                <label for="model">Model:</label>
+                <select id="model">
+                    <option value="">Auto (based on task)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="mistral">Mistral</option>
+                    <option value="claude">Claude</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="task-type">Task Type:</label>
+                <select id="task-type">
+                    <option value="">Auto</option>
+                    <option value="text_generation">Text Generation</option>
+                    <option value="summarization">Summarization</option>
+                    <option value="sentiment_analysis">Sentiment Analysis</option>
+                    <option value="question_answering">Question Answering</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="query">Query:</label>
+                <textarea id="query" rows="4" placeholder="Enter your query here..."></textarea>
+            </div>
+            
+            <button id="submit-btn">Submit</button>
+            
+            <div class="response-container">
+                <h3>Response</h3>
+                <div id="response-info"></div>
+                <div id="response"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
