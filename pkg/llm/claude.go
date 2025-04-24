@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/amorin24/llmproxy/pkg/config"
@@ -87,6 +88,22 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string) (*QueryRe
 		NumRetries: 0,
 	}
 
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test Claude key, returning simulated response")
+		
+		time.Sleep(350 * time.Millisecond)
+		
+		result.StatusCode = http.StatusOK
+		result.Response = "This is a simulated response for testing purposes. The actual Claude model is currently unavailable. This response allows testing of the copy and download functionality."
+		result.InputTokens = len(query) / 4
+		result.OutputTokens = len(result.Response) / 4
+		result.TotalTokens = result.InputTokens + result.OutputTokens
+		result.NumTokens = result.TotalTokens
+		result.ResponseTime = time.Since(startTime).Milliseconds()
+		
+		return result, nil
+	}
+
 	reqBody, err := json.Marshal(ClaudeRequest{
 		Model: "claude-3-sonnet-20240229",
 		Messages: []ClaudeMessage{
@@ -164,6 +181,11 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string) (*QueryRe
 func (c *ClaudeClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
+	}
+	
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test Claude key, assuming service is available")
+		return true
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

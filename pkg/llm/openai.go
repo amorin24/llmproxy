@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/amorin24/llmproxy/pkg/config"
@@ -88,6 +89,22 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string) (*QueryRe
 		NumRetries: 0,
 	}
 
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test OpenAI key, returning simulated response")
+		
+		time.Sleep(300 * time.Millisecond)
+		
+		result.StatusCode = http.StatusOK
+		result.Response = "This is a simulated response for testing purposes. The actual OpenAI model is currently unavailable. This response allows testing of the copy and download functionality."
+		result.InputTokens = len(query) / 4
+		result.OutputTokens = len(result.Response) / 4
+		result.TotalTokens = result.InputTokens + result.OutputTokens
+		result.NumTokens = result.TotalTokens
+		result.ResponseTime = time.Since(startTime).Milliseconds()
+		
+		return result, nil
+	}
+
 	reqBody, err := json.Marshal(OpenAIRequest{
 		Model: "gpt-3.5-turbo",
 		Messages: []Message{
@@ -163,6 +180,11 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string) (*QueryRe
 func (c *OpenAIClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
+	}
+	
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test OpenAI key, assuming service is available")
+		return true
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
