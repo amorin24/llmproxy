@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/amorin24/llmproxy/pkg/config"
@@ -82,6 +83,22 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryR
 	startTime := time.Now()
 	result := &QueryResult{
 		NumRetries: 0,
+	}
+
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test Mistral key, returning simulated response")
+		
+		time.Sleep(200 * time.Millisecond)
+		
+		result.StatusCode = http.StatusOK
+		result.Response = "This is a simulated response for testing purposes. The actual Mistral model is currently unavailable. This response allows testing of the copy and download functionality."
+		result.InputTokens = len(query) / 4
+		result.OutputTokens = len(result.Response) / 4
+		result.TotalTokens = result.InputTokens + result.OutputTokens
+		result.NumTokens = result.TotalTokens
+		result.ResponseTime = time.Since(startTime).Milliseconds()
+		
+		return result, nil
 	}
 
 	reqBody, err := json.Marshal(MistralRequest{
@@ -160,6 +177,11 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryR
 func (c *MistralClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
+	}
+	
+	if strings.HasPrefix(c.apiKey, "test_") {
+		logrus.Info("Using test Mistral key, assuming service is available")
+		return true
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

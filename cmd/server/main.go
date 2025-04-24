@@ -23,6 +23,8 @@ func main() {
 
 	r.HandleFunc("/api/query", handler.QueryHandler).Methods("POST")
 	r.HandleFunc("/api/status", handler.StatusHandler).Methods("GET")
+	r.HandleFunc("/api/download", handler.DownloadHandler).Methods("POST")
+	r.HandleFunc("/api/health", handler.HealthHandler).Methods("GET")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./ui"))))
 

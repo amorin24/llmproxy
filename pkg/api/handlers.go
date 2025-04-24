@@ -457,6 +457,56 @@ func (h *Handler) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
+func (h *Handler) DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		handleError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	clientIP := getClientIP(r)
+	if !h.rateLimiter.AllowClient(clientIP) {
+		logrus.WithField("client_ip", clientIP).Warn("Rate limit exceeded for download")
+		handleError(w, "Rate limit exceeded. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+	
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+	
+	var req struct {
+		Response string `json:"response"`
+		Format   string `json:"format"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handleError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	if req.Response == "" {
+		handleError(w, "Response content cannot be empty", http.StatusBadRequest)
+		return
+	}
+	
+	switch req.Format {
+	case "txt":
+		w.Header().Set("Content-Disposition", "attachment; filename=llm_response.txt")
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(req.Response))
+		
+	case "pdf":
+		w.Header().Set("Content-Disposition", "attachment; filename=llm_response.pdf")
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Write([]byte(req.Response))
+		
+	case "docx":
+		w.Header().Set("Content-Disposition", "attachment; filename=llm_response.docx")
+		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+		w.Write([]byte(req.Response))
+		
+	default:
+		handleError(w, "Unsupported format. Supported formats are: txt, pdf, docx.", http.StatusBadRequest)
+}
+
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
