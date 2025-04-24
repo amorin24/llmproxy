@@ -504,8 +504,7 @@ func (h *Handler) DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(req.Response))
 		
 	default:
-		handleError(w, "Unsupported format", http.StatusBadRequest)
-	}
+		handleError(w, "Unsupported format. Supported formats are: txt, pdf, docx.", http.StatusBadRequest)
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
