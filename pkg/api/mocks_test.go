@@ -95,12 +95,12 @@ func (m *MockCache) Set(req models.QueryRequest, resp models.QueryResponse) {
 
 type MockLLMClient struct {
 	modelType models.ModelType
-	queryFunc func(ctx context.Context, query string) (*llm.QueryResult, error)
+	queryFunc func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error)
 }
 
-func (m *MockLLMClient) Query(ctx context.Context, query string) (*llm.QueryResult, error) {
+func (m *MockLLMClient) Query(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 	if m.queryFunc != nil {
-		return m.queryFunc(ctx, query)
+		return m.queryFunc(ctx, query, modelVersion)
 	}
 	return &llm.QueryResult{
 		Response: "Mock response",

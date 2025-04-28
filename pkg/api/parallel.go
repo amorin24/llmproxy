@@ -18,9 +18,10 @@ import (
 )
 
 type ParallelQueryRequest struct {
-	Query   string              `json:"query"`
-	Models  []models.ModelType  `json:"models"`
-	Timeout int                 `json:"timeout,omitempty"` // Timeout in seconds
+	Query         string                          `json:"query"`
+	Models        []models.ModelType              `json:"models"`
+	ModelVersions map[string]string               `json:"model_versions,omitempty"` // Map of model name to version
+	Timeout       int                             `json:"timeout,omitempty"`        // Timeout in seconds
 }
 
 type ParallelQueryResponse struct {
@@ -154,7 +155,14 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			
-			result, err := client.Query(ctx, req.Query)
+			modelVersion := ""
+			if req.ModelVersions != nil {
+				if version, ok := req.ModelVersions[string(model)]; ok {
+					modelVersion = version
+				}
+			}
+			
+			result, err := client.Query(ctx, req.Query, modelVersion)
 			
 			modelElapsedTime := time.Since(modelStartTime).Milliseconds()
 			

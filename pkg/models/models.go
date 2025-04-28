@@ -22,10 +22,11 @@ const (
 )
 
 type QueryRequest struct {
-	Query     string    `json:"query"`
-	Model     ModelType `json:"model,omitempty"`     // Optional - if not provided, will be determined by the proxy
-	TaskType  TaskType  `json:"task_type,omitempty"` // Optional - helps with model selection
-	RequestID string    `json:"request_id,omitempty"` // Optional - for tracking requests
+	Query        string    `json:"query"`
+	Model        ModelType `json:"model,omitempty"`        // Optional - if not provided, will be determined by the proxy
+	ModelVersion string    `json:"model_version,omitempty"` // Optional - specific version of the model to use
+	TaskType     TaskType  `json:"task_type,omitempty"`    // Optional - helps with model selection
+	RequestID    string    `json:"request_id,omitempty"`   // Optional - for tracking requests
 }
 
 type QueryResponse struct {

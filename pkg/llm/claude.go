@@ -64,13 +64,15 @@ func (c *ClaudeClient) GetModelType() models.ModelType {
 	return models.Claude
 }
 
-func (c *ClaudeClient) Query(ctx context.Context, query string) (*QueryResult, error) {
+func (c *ClaudeClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	if c.apiKey == "" {
 		return nil, myerrors.NewModelError(string(models.Claude), 401, myerrors.ErrAPIKeyMissing, false)
 	}
 
+	modelVersion = ValidateModelVersion(models.Claude, modelVersion)
+
 	retryFunc := func() (interface{}, error) {
-		return c.executeQuery(ctx, query)
+		return c.executeQuery(ctx, query, modelVersion)
 	}
 
 	result, err := retry.Do(ctx, retryFunc, retry.DefaultConfig)
@@ -81,7 +83,7 @@ func (c *ClaudeClient) Query(ctx context.Context, query string) (*QueryResult, e
 	return result.(*QueryResult), nil
 }
 
-func (c *ClaudeClient) executeQuery(ctx context.Context, query string) (*QueryResult, error) {
+func (c *ClaudeClient) executeQuery(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	startTime := time.Now()
 	result := &QueryResult{
 		NumRetries: 0,
@@ -104,7 +106,7 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string) (*QueryRe
 	}
 
 	reqBody, err := json.Marshal(ClaudeRequest{
-		Model: "claude-3-sonnet-20240229",
+		Model: modelVersion,
 		Messages: []ClaudeMessage{
 			{
 				Role:    "user",

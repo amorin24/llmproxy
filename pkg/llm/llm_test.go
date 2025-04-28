@@ -29,11 +29,11 @@ func isRetryableError(err error) bool {
 	return false
 }
 
-func QueryWithTimeout(client Client, query string, timeout time.Duration) (*QueryResult, error) {
+func QueryWithTimeout(client Client, query string, modelVersion string, timeout time.Duration) (*QueryResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	
-	return client.Query(ctx, query)
+	return client.Query(ctx, query, modelVersion)
 }
 
 func TestEstimateTokens(t *testing.T) {
@@ -244,7 +244,7 @@ func TestFactory(t *testing.T) {
 
 type MockClient struct {
 	GetModelTypeFunc func() models.ModelType
-	QueryFunc        func(ctx context.Context, query string) (*QueryResult, error)
+	QueryFunc        func(ctx context.Context, query string, modelVersion string) (*QueryResult, error)
 	CheckAvailabilityFunc func() bool
 }
 
@@ -252,8 +252,8 @@ func (m *MockClient) GetModelType() models.ModelType {
 	return m.GetModelTypeFunc()
 }
 
-func (m *MockClient) Query(ctx context.Context, query string) (*QueryResult, error) {
-	return m.QueryFunc(ctx, query)
+func (m *MockClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
+	return m.QueryFunc(ctx, query, modelVersion)
 }
 
 func (m *MockClient) CheckAvailability() bool {
@@ -289,7 +289,7 @@ func TestQueryWithTimeout(t *testing.T) {
 				GetModelTypeFunc: func() models.ModelType {
 					return models.OpenAI
 				},
-				QueryFunc: func(ctx context.Context, query string) (*QueryResult, error) {
+				QueryFunc: func(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 					select {
 					case <-time.After(tc.queryDelay):
 						return &QueryResult{Response: "test response"}, nil
@@ -299,7 +299,7 @@ func TestQueryWithTimeout(t *testing.T) {
 				},
 			}
 			
-			result, err := QueryWithTimeout(mockClient, "test query", tc.timeout)
+			result, err := QueryWithTimeout(mockClient, "test query", "default-version", tc.timeout)
 			
 			if tc.expectError {
 				if err == nil {

@@ -345,14 +345,14 @@ func TestQueryHandler(t *testing.T) {
 			if modelType == models.OpenAI {
 				return &MockLLMClient{
 					modelType: modelType,
-					queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 						return nil, myerrors.NewRateLimitError(string(modelType))
 					},
 				}, nil
 			}
 			return &MockLLMClient{
 				modelType: modelType,
-				queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 					return &llm.QueryResult{
 						Response:     "Fallback response from " + string(modelType),
 						StatusCode:   200,
@@ -401,7 +401,7 @@ func TestQueryHandler(t *testing.T) {
 		llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 			return &MockLLMClient{
 				modelType: modelType,
-				queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 					return nil, myerrors.NewRateLimitError(string(modelType))
 				},
 			}, nil
@@ -467,7 +467,7 @@ func TestQueryHandler(t *testing.T) {
 		llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 			return &MockLLMClient{
 				modelType: modelType,
-				queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 					return nil, context.Canceled
 				},
 			}, nil
@@ -503,7 +503,7 @@ func TestQueryHandler(t *testing.T) {
 		llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 			return &MockLLMClient{
 				modelType: modelType,
-				queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 					return nil, context.DeadlineExceeded
 				},
 			}, nil

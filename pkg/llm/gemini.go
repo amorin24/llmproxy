@@ -72,13 +72,15 @@ func (c *GeminiClient) GetModelType() models.ModelType {
 	return models.Gemini
 }
 
-func (c *GeminiClient) Query(ctx context.Context, query string) (*QueryResult, error) {
+func (c *GeminiClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	if c.apiKey == "" {
 		return nil, myerrors.NewModelError(string(models.Gemini), 401, myerrors.ErrAPIKeyMissing, false)
 	}
 
+	modelVersion = ValidateModelVersion(models.Gemini, modelVersion)
+
 	retryFunc := func() (interface{}, error) {
-		return c.executeQuery(ctx, query)
+		return c.executeQuery(ctx, query, modelVersion)
 	}
 
 	result, err := retry.Do(ctx, retryFunc, retry.DefaultConfig)
@@ -89,7 +91,7 @@ func (c *GeminiClient) Query(ctx context.Context, query string) (*QueryResult, e
 	return result.(*QueryResult), nil
 }
 
-func (c *GeminiClient) executeQuery(ctx context.Context, query string) (*QueryResult, error) {
+func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	startTime := time.Now()
 	result := &QueryResult{
 		NumRetries: 0,
@@ -130,7 +132,7 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string) (*QueryRe
 		return nil, myerrors.NewModelError(string(models.Gemini), 500, fmt.Errorf("error marshaling request: %v", err), false)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=%s", c.apiKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1/models/%s:generateContent?key=%s", modelVersion, c.apiKey)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, myerrors.NewModelError(string(models.Gemini), 500, fmt.Errorf("error creating request: %v", err), false)

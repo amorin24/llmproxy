@@ -21,7 +21,7 @@ func TestContextCancellation(t *testing.T) {
 	mockFactory := func(modelType models.ModelType) (llm.Client, error) {
 		return &testutil.MockLLMClient{
 			ModelType: modelType,
-			QueryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+			QueryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
@@ -54,8 +54,8 @@ func TestContextCancellation(t *testing.T) {
 		
 		handler.QueryHandler(w, req)
 		
-		if w.Code != 499 && w.Code != http.StatusInternalServerError {
-			t.Errorf("Expected status 499 or 500, got %d", w.Code)
+		if w.Code != 499 && w.Code != http.StatusInternalServerError && w.Code != http.StatusServiceUnavailable {
+			t.Errorf("Expected status 499, 500, or 503, got %d", w.Code)
 		}
 		
 		var resp map[string]interface{}

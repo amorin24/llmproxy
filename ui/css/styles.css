@@ -1050,10 +1050,22 @@ label {
 .model-checkbox-item {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm);
     border-radius: var(--border-radius);
     transition: all var(--transition-speed) var(--transition-func);
+}
+
+.model-version-select {
+    margin-left: auto;
+    width: 180px;
+}
+
+.model-version {
+    font-size: 0.85rem;
+    padding: 6px 10px !important;
+    height: auto;
 }
 
 .light-theme .model-checkbox-item:hover {

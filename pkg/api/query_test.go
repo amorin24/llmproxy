@@ -103,7 +103,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 					return models.QueryResponse{}, false // Cache miss
 				}
 			},
-			expectedStatus: http.StatusServiceUnavailable,
+			expectedStatus: http.StatusInternalServerError,
 			expectError:    true,
 		},
 		{
@@ -120,7 +120,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 					return models.QueryResponse{}, false // Cache miss
 				}
 			},
-			expectedStatus: http.StatusRequestTimeout,
+			expectedStatus: 499, // Client Closed Request
 			expectError:    true,
 			cancelContext:  true,
 		},
@@ -153,7 +153,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 				if modelType == models.OpenAI {
 					return &MockLLMClient{
 						modelType: models.OpenAI,
-						queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+						queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 							if tc.name == "LLM query error with fallback" || tc.name == "LLM query error with no fallback" {
 								return nil, myerrors.NewRateLimitError("openai")
 							}
@@ -165,7 +165,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 				}
 				return &MockLLMClient{
 					modelType: modelType,
-					queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+						queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 						return &llm.QueryResult{
 							Response: "Fallback response from " + string(modelType),
 						}, nil
@@ -254,7 +254,7 @@ func TestQueryHandlerWithTimeout(t *testing.T) {
 	llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 		return &MockLLMClient{
 			modelType: modelType,
-			queryFunc: func(ctx context.Context, query string) (*llm.QueryResult, error) {
+			queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 				select {
 				case <-time.After(200 * time.Millisecond):
 					return &llm.QueryResult{

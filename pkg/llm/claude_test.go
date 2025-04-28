@@ -127,7 +127,7 @@ func TestClaudeClient_Query(t *testing.T) {
 				client: httpClient,
 			}
 			
-			result, err := client.Query(context.Background(), "Test query")
+			result, err := client.Query(context.Background(), "Test query", "claude-3-sonnet-20240229")
 			
 			if tc.expectError {
 				if err == nil {

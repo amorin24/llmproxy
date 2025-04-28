@@ -61,13 +61,15 @@ func (c *MistralClient) GetModelType() models.ModelType {
 	return models.Mistral
 }
 
-func (c *MistralClient) Query(ctx context.Context, query string) (*QueryResult, error) {
+func (c *MistralClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	if c.apiKey == "" {
 		return nil, myerrors.NewModelError(string(models.Mistral), 401, myerrors.ErrAPIKeyMissing, false)
 	}
 
+	modelVersion = ValidateModelVersion(models.Mistral, modelVersion)
+
 	retryFunc := func() (interface{}, error) {
-		return c.executeQuery(ctx, query)
+		return c.executeQuery(ctx, query, modelVersion)
 	}
 
 	result, err := retry.Do(ctx, retryFunc, retry.DefaultConfig)
@@ -78,7 +80,7 @@ func (c *MistralClient) Query(ctx context.Context, query string) (*QueryResult, 
 	return result.(*QueryResult), nil
 }
 
-func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryResult, error) {
+func (c *MistralClient) executeQuery(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	startTime := time.Now()
 	result := &QueryResult{
 		NumRetries: 0,
@@ -101,7 +103,7 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string) (*QueryR
 	}
 
 	reqBody, err := json.Marshal(MistralRequest{
-		Model: "mistral-medium",
+		Model: modelVersion,
 		Messages: []Message{
 			{
 				Role:    "user",

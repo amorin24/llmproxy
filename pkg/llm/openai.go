@@ -65,13 +65,15 @@ func (c *OpenAIClient) GetModelType() models.ModelType {
 	return models.OpenAI
 }
 
-func (c *OpenAIClient) Query(ctx context.Context, query string) (*QueryResult, error) {
+func (c *OpenAIClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	if c.apiKey == "" {
 		return nil, myerrors.NewModelError(string(models.OpenAI), 401, myerrors.ErrAPIKeyMissing, false)
 	}
 
+	modelVersion = ValidateModelVersion(models.OpenAI, modelVersion)
+
 	retryFunc := func() (interface{}, error) {
-		return c.executeQuery(ctx, query)
+		return c.executeQuery(ctx, query, modelVersion)
 	}
 
 	result, err := retry.Do(ctx, retryFunc, retry.DefaultConfig)
@@ -82,7 +84,7 @@ func (c *OpenAIClient) Query(ctx context.Context, query string) (*QueryResult, e
 	return result.(*QueryResult), nil
 }
 
-func (c *OpenAIClient) executeQuery(ctx context.Context, query string) (*QueryResult, error) {
+func (c *OpenAIClient) executeQuery(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {
 	startTime := time.Now()
 	result := &QueryResult{
 		NumRetries: 0,
@@ -105,7 +107,7 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string) (*QueryRe
 	}
 
 	reqBody, err := json.Marshal(OpenAIRequest{
-		Model: "gpt-3.5-turbo",
+		Model: modelVersion,
 		Messages: []Message{
 			{
 				Role:    "user",
