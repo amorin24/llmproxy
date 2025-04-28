@@ -12,6 +12,7 @@ import (
 
 	"github.com/amorin24/llmproxy/pkg/config"
 	myerrors "github.com/amorin24/llmproxy/pkg/errors"
+	httpclient "github.com/amorin24/llmproxy/pkg/http"
 	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/amorin24/llmproxy/pkg/retry"
 	"github.com/sirupsen/logrus"
@@ -63,9 +64,7 @@ func NewGeminiClient() *GeminiClient {
 	apiKey, _ := config.GetConfig().GetAPIKey("gemini")
 	return &GeminiClient{
 		apiKey: apiKey,
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		client: httpclient.GetClient(),
 	}
 }
 
