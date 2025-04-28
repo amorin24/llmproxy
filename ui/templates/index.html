@@ -94,6 +94,34 @@
                 </div>
                 
                 <div class="form-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="multi-model-checkbox" class="custom-checkbox">
+                        <label for="multi-model-checkbox">Query Multiple Models</label>
+                    </div>
+                    
+                    <div id="model-selection" class="model-selection" style="display: none;">
+                        <div class="model-checkbox-group">
+                            <div class="model-checkbox-item">
+                                <input type="checkbox" id="model-openai" class="model-checkbox custom-checkbox" value="openai" checked>
+                                <label for="model-openai">OpenAI</label>
+                            </div>
+                            <div class="model-checkbox-item">
+                                <input type="checkbox" id="model-gemini" class="model-checkbox custom-checkbox" value="gemini" checked>
+                                <label for="model-gemini">Gemini</label>
+                            </div>
+                            <div class="model-checkbox-item">
+                                <input type="checkbox" id="model-mistral" class="model-checkbox custom-checkbox" value="mistral" checked>
+                                <label for="model-mistral">Mistral</label>
+                            </div>
+                            <div class="model-checkbox-item">
+                                <input type="checkbox" id="model-claude" class="model-checkbox custom-checkbox" value="claude" checked>
+                                <label for="model-claude">Claude</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
                     <label for="task-type">Task Type:</label>
                     <div class="select-wrapper">
                         <select id="task-type" class="custom-select">
