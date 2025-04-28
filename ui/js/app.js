@@ -461,7 +461,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function copyToClipboard() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to copy');
@@ -514,7 +541,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsTxt() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    responseText = `=== ${modelName.toUpperCase()} RESPONSE ===\n${modelResponseContent.textContent}`;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                responseText = "=== LLM PROXY MULTI-MODEL RESPONSES ===\n\n";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -535,7 +590,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsPdf() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        let title = 'LLM Response';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    title = `${modelName.toUpperCase()} Response`;
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                title = "LLM Proxy Multi-Model Responses";
+                responseText = "";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -549,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const doc = new jsPDF();
             
             doc.setFontSize(16);
-            doc.text('LLM Response', 20, 20);
+            doc.text(title, 20, 20);
             
             doc.setFontSize(10);
             doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
@@ -570,7 +656,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsDocx() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        let title = 'LLM Response';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    title = `${modelName.toUpperCase()} Response`;
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                title = "LLM Proxy Multi-Model Responses";
+                responseText = "";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -589,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         new Paragraph({
                             children: [
                                 new TextRun({
-                                    text: 'LLM Response',
+                                    text: title,
                                     bold: true,
                                     size: 28
                                 })
