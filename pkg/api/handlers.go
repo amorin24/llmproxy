@@ -291,7 +291,7 @@ func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	result, err := client.Query(ctx, req.Query)
+	result, err := client.Query(ctx, req.Query, req.ModelVersion)
 	
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -329,7 +329,7 @@ func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 			if fallbackErr == nil {
 				fallbackClient, clientErr := llm.Factory(fallbackModel)
 				if clientErr == nil {
-					result, err = fallbackClient.Query(ctx, req.Query)
+					result, err = fallbackClient.Query(ctx, req.Query, req.ModelVersion)
 					
 					if err == nil {
 						logrus.WithFields(logrus.Fields{

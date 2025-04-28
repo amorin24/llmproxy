@@ -128,7 +128,7 @@ func TestOpenAIClient_Query(t *testing.T) {
 				client: httpClient,
 			}
 			
-			result, err := client.Query(context.Background(), "Test query")
+			result, err := client.Query(context.Background(), "Test query", "gpt-3.5-turbo")
 			
 			if tc.expectError {
 				if err == nil {

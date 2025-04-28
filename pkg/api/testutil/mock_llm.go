@@ -10,13 +10,13 @@ import (
 type MockLLMClient struct {
 	ModelType  models.ModelType
 	Available  bool
-	QueryFunc  func(ctx context.Context, query string) (*llm.QueryResult, error)
+	QueryFunc  func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error)
 	QueryError error
 }
 
-func (m *MockLLMClient) Query(ctx context.Context, query string) (*llm.QueryResult, error) {
+func (m *MockLLMClient) Query(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 	if m.QueryFunc != nil {
-		return m.QueryFunc(ctx, query)
+		return m.QueryFunc(ctx, query, modelVersion)
 	}
 	
 	if m.QueryError != nil {

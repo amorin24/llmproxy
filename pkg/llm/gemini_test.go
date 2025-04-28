@@ -130,7 +130,7 @@ func TestGeminiClient_Query(t *testing.T) {
 				client: httpClient,
 			}
 			
-			result, err := client.Query(context.Background(), "Test query")
+			result, err := client.Query(context.Background(), "Test query", "gemini-pro")
 			
 			if tc.expectError {
 				if err == nil {

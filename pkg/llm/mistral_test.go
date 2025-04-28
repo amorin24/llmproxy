@@ -128,7 +128,7 @@ func TestMistralClient_Query(t *testing.T) {
 				client: httpClient,
 			}
 			
-			result, err := client.Query(context.Background(), "Test query")
+			result, err := client.Query(context.Background(), "Test query", "mistral-medium")
 			
 			if tc.expectError {
 				if err == nil {

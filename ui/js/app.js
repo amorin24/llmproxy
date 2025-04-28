@@ -175,10 +175,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (isMultiModel) {
             requestData.models = selectedModels;
+            
+            const modelVersions = {};
+            selectedModels.forEach(model => {
+                const versionSelect = document.getElementById(`model-version-${model}`);
+                if (versionSelect && versionSelect.value) {
+                    modelVersions[model] = versionSelect.value;
+                }
+            });
+            
+            if (Object.keys(modelVersions).length > 0) {
+                requestData.model_versions = modelVersions;
+            }
         } else {
             const selectedModel = selectedModels.length === 1 ? selectedModels[0] : modelEl.value;
             if (selectedModel) {
                 requestData.model = selectedModel;
+                
+                const versionSelect = document.getElementById(`model-version-${selectedModel}`);
+                if (versionSelect && versionSelect.value) {
+                    requestData.model_version = versionSelect.value;
+                }
             }
         }
         
