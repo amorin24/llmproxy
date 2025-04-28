@@ -20,17 +20,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const modelSelection = document.getElementById('model-selection');
     let tempErrorEl = null;
     
-    if (multiModelCheckbox && modelSelection) {
-        multiModelCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                modelSelection.style.display = 'block';
-                modelEl.disabled = true;
+    function updateModelCounter() {
+        const modelCheckboxes = document.querySelectorAll('.model-checkbox:checked');
+        const modelCount = modelCheckboxes.length;
+        const modelCountBadge = document.querySelector('.model-count-badge');
+        
+        if (modelCountBadge) {
+            modelCountBadge.textContent = `${modelCount} selected`;
+            
+            if (modelCount > 1) {
+                modelCountBadge.classList.add('multiple');
             } else {
-                modelSelection.style.display = 'none';
-                modelEl.disabled = false;
+                modelCountBadge.classList.remove('multiple');
             }
-        });
+        }
     }
+    
+    document.querySelectorAll('.model-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateModelCounter);
+    });
+    
+    updateModelCounter();
     
     function initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -154,38 +164,27 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const multiModelCheckbox = document.getElementById('multi-model-checkbox');
-        const isMultiModel = multiModelCheckbox && multiModelCheckbox.checked;
+        const modelCheckboxes = document.querySelectorAll('.model-checkbox:checked');
+        const selectedModels = Array.from(modelCheckboxes).map(cb => cb.value);
+        const isMultiModel = selectedModels.length > 1;
         
         const requestData = {
             query: query,
             request_id: generateRequestId()
         };
         
-        const selectedModel = modelEl.value;
-        if (selectedModel && !isMultiModel) {
-            requestData.model = selectedModel;
+        if (isMultiModel) {
+            requestData.models = selectedModels;
+        } else {
+            const selectedModel = selectedModels.length === 1 ? selectedModels[0] : modelEl.value;
+            if (selectedModel) {
+                requestData.model = selectedModel;
+            }
         }
         
         const selectedTaskType = taskTypeEl.value;
         if (selectedTaskType) {
             requestData.task_type = selectedTaskType;
-        }
-        
-        if (isMultiModel) {
-            const modelCheckboxes = document.querySelectorAll('.model-checkbox:checked');
-            const selectedModels = Array.from(modelCheckboxes).map(cb => cb.value);
-            
-            if (selectedModels.length === 0) {
-                if (selectedModel) {
-                    requestData.models = [selectedModel];
-                } else {
-                    showError('Please select at least one model');
-                    return;
-                }
-            } else {
-                requestData.models = selectedModels;
-            }
         }
         
         submitBtn.disabled = true;
@@ -198,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const responseContainer = document.querySelector('.response-container');
         responseContainer.classList.add('loading-response');
         
-        const endpoint = isMultiModel ? '/api/query-parallel' : '/api/query';
+        const endpoint = isMultiModel ? '/api/parallel' : '/api/query';
         
         fetch(endpoint, {
             method: 'POST',
@@ -222,8 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 if (isMultiModel) {
+                    document.getElementById('single-response-view').style.display = 'none';
+                    document.getElementById('multi-response-view').style.display = 'block';
                     displayMultiModelResponse(data);
                 } else {
+                    document.getElementById('single-response-view').style.display = 'block';
+                    document.getElementById('multi-response-view').style.display = 'none';
                     displaySingleModelResponse(data);
                 }
                 
@@ -311,92 +314,320 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function displayMultiModelResponse(data) {
         const responses = data.responses;
-        const elapsedTime = data.elapsed_time;
+        const multiModelResponses = document.getElementById('multi-model-responses');
         
-        let responsesHtml = `
-            <div class="multi-model-responses">
-                <div class="multi-model-header">
-                    <h3>Responses from Multiple Models</h3>
-                    <div class="response-meta-item"><strong>Total Time:</strong> ${data.elapsed_time_ms}ms</div>
-                    <div class="response-meta-item"><strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...</div>
-                </div>
-                <div class="model-tabs">
+        multiModelResponses.innerHTML = '';
+        
+        const responseHeader = document.createElement('div');
+        responseHeader.className = 'multi-model-header';
+        responseHeader.innerHTML = `
+            <h3>Responses from Multiple Models</h3>
+            <div class="response-meta-item"><strong>Total Time:</strong> ${data.elapsed_time_ms}ms</div>
+            <div class="response-meta-item"><strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...</div>
         `;
-        
-        let tabsHtml = '';
-        let contentHtml = '';
-        let firstModel = true;
+        multiModelResponses.appendChild(responseHeader);
         
         for (const [modelName, response] of Object.entries(responses)) {
             const model = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-            const activeClass = firstModel ? 'active' : '';
             const modelIcon = getModelIcon(modelName);
             
-            tabsHtml += `
-                <div class="model-tab ${activeClass}" data-model="${modelName}">
-                    <div class="model-icon">${modelIcon}</div>
-                    <div>${model}</div>
-                </div>
-            `;
+            const responseCard = document.createElement('div');
+            responseCard.className = 'model-response-card';
+            responseCard.dataset.model = modelName;
             
-            contentHtml += `
-                <div class="model-response ${activeClass}" id="response-${modelName}">
-                    <div class="model-response-meta">
-                        <div class="response-meta-item"><strong>Response Time:</strong> ${response.response_time}ms</div>
+            let responseMetaHtml = `
+                <div class="model-response-header">
+                    <div class="model-icon">${modelIcon}</div>
+                    <div class="model-name">${model}</div>
+                </div>
+                <div class="model-response-meta">
+                    <div class="response-meta-item"><strong>Response Time:</strong> ${response.response_time}ms</div>
             `;
             
             if (response.total_tokens) {
-                contentHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.total_tokens}</div>`;
+                responseMetaHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.total_tokens}</div>`;
                 
                 if (response.input_tokens && response.output_tokens) {
-                    contentHtml += `<div class="response-meta-item"><strong>Input/Output:</strong> ${response.input_tokens}/${response.output_tokens}</div>`;
+                    responseMetaHtml += `<div class="response-meta-item"><strong>Input/Output:</strong> ${response.input_tokens}/${response.output_tokens}</div>`;
                 }
             } else if (response.num_tokens) {
-                contentHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.num_tokens}</div>`;
+                responseMetaHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.num_tokens}</div>`;
             }
             
             if (response.num_retries) {
-                contentHtml += `<div class="response-meta-item"><strong>Retries:</strong> ${response.num_retries}</div>`;
+                responseMetaHtml += `<div class="response-meta-item"><strong>Retries:</strong> ${response.num_retries}</div>`;
             }
             
+            responseMetaHtml += `</div>`;
+            
+            let responseContentClass = 'model-response-content';
             if (response.error) {
-                contentHtml += `
-                        <div class="response-meta-item error"><strong>Error:</strong> ${response.error}</div>
-                    </div>
-                    <div class="model-response-content error">${response.response}</div>
-                </div>
-                `;
-            } else {
-                contentHtml += `
-                        </div>
-                        <div class="model-response-content">${response.response}</div>
-                    </div>
-                `;
+                responseMetaHtml += `<div class="response-meta-item error"><strong>Error:</strong> ${response.error}</div>`;
+                responseContentClass += ' error';
             }
             
-            firstModel = false;
+            responseCard.innerHTML = `
+                ${responseMetaHtml}
+                <div class="${responseContentClass}">${response.response}</div>
+                <div class="model-response-actions">
+                    <button class="copy-model-response" data-model="${modelName}">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <div class="model-download-dropdown">
+                        <button class="download-model-response" data-model="${modelName}">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <div class="model-download-options">
+                            <button class="model-download-option" data-format="txt" data-model="${modelName}">
+                                <i class="fas fa-file-alt"></i> Text (.txt)
+                            </button>
+                            <button class="model-download-option" data-format="pdf" data-model="${modelName}">
+                                <i class="fas fa-file-pdf"></i> PDF (.pdf)
+                            </button>
+                            <button class="model-download-option" data-format="docx" data-model="${modelName}">
+                                <i class="fas fa-file-word"></i> Word (.docx)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            multiModelResponses.appendChild(responseCard);
         }
         
-        responsesHtml += tabsHtml;
-        responsesHtml += `</div><div class="model-responses-content">`;
-        responsesHtml += contentHtml;
-        responsesHtml += `</div></div>`;
-        
-        responseEl.innerHTML = responsesHtml;
-        
-        document.querySelectorAll('.model-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const model = tab.dataset.model;
+        document.querySelectorAll('.copy-model-response').forEach(button => {
+            button.addEventListener('click', function() {
+                const modelName = this.dataset.model;
+                const responseContent = document.querySelector(`.model-response-card[data-model="${modelName}"] .model-response-content`);
                 
-                document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.model-response').forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(`response-${model}`).classList.add('active');
+                if (responseContent) {
+                    const text = responseContent.textContent;
+                    copyTextToClipboard(text, this);
+                }
             });
         });
         
-        responseInfoEl.innerHTML = '';
+        document.querySelectorAll('.download-model-response').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modelName = this.dataset.model;
+                const downloadOptions = this.nextElementSibling;
+                downloadOptions.classList.toggle('show');
+                
+                document.addEventListener('click', function closeDropdown(event) {
+                    if (!button.contains(event.target) && !downloadOptions.contains(event.target)) {
+                        downloadOptions.classList.remove('show');
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+                
+                addRippleEffect(button);
+            });
+        });
+        
+        document.querySelectorAll('.model-download-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const format = this.dataset.format;
+                const modelName = this.dataset.model;
+                const responseContent = document.querySelector(`.model-response-card[data-model="${modelName}"] .model-response-content`);
+                
+                if (responseContent) {
+                    const text = responseContent.textContent;
+                    const title = `${modelName.toUpperCase()} Response`;
+                    
+                    switch(format) {
+                        case 'txt':
+                            downloadAsTextFile(text, title);
+                            break;
+                        case 'pdf':
+                            downloadAsPdfFile(text, title);
+                            break;
+                        case 'docx':
+                            downloadAsDocxFile(text, title);
+                            break;
+                    }
+                }
+                
+                this.closest('.model-download-options').classList.remove('show');
+            });
+        });
+        
+        document.getElementById('grid-view-btn').addEventListener('click', function() {
+            setMultiResponseViewMode('grid-view');
+            this.classList.add('active');
+            document.getElementById('side-by-side-btn').classList.remove('active');
+            document.getElementById('stacked-view-btn').classList.remove('active');
+        });
+        
+        document.getElementById('side-by-side-btn').addEventListener('click', function() {
+            setMultiResponseViewMode('side-by-side-view');
+            this.classList.add('active');
+            document.getElementById('grid-view-btn').classList.remove('active');
+            document.getElementById('stacked-view-btn').classList.remove('active');
+        });
+        
+        document.getElementById('stacked-view-btn').addEventListener('click', function() {
+            setMultiResponseViewMode('stacked-view');
+            this.classList.add('active');
+            document.getElementById('grid-view-btn').classList.remove('active');
+            document.getElementById('side-by-side-btn').classList.remove('active');
+        });
+        
+        setMultiResponseViewMode('grid-view');
+    }
+    
+    function setMultiResponseViewMode(viewMode) {
+        const multiModelResponses = document.getElementById('multi-model-responses');
+        multiModelResponses.className = `multi-model-responses ${viewMode}`;
+    }
+    
+    function copyTextToClipboard(text, button) {
+        if (!text) {
+            showError('No response to copy');
+            return;
+        }
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    addRippleEffect(button);
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    showError('Failed to copy to clipboard');
+                });
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';  // Avoid scrolling to bottom
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    addRippleEffect(button);
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                } else {
+                    showError('Failed to copy to clipboard');
+                }
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showError('Failed to copy to clipboard');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+    }
+    
+    function downloadAsTextFile(text, title) {
+        const filename = `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.txt`;
+        const blob = new Blob([text], { type: 'text/plain' });
+        downloadFile(blob, filename);
+    }
+    
+    function downloadAsPdfFile(text, title) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(16);
+            doc.text(title, 20, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+            
+            doc.setFontSize(12);
+            const splitText = doc.splitTextToSize(text, 170);
+            doc.text(splitText, 20, 40);
+            
+            const filename = `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+        };
+        
+        script.onerror = function() {
+            showError('Failed to load PDF generation library');
+        };
+        
+        document.head.appendChild(script);
+    }
+    
+    function downloadAsDocxFile(text, title) {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/docx@7.8.2/build/index.js';
+        script.onload = function() {
+            const { Document, Packer, Paragraph, TextRun } = window.docx;
+            
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: title,
+                                    bold: true,
+                                    size: 28
+                                })
+                            ]
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Generated on: ${new Date().toLocaleString()}`,
+                                    size: 20,
+                                    italics: true
+                                })
+                            ]
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: text,
+                                    size: 24
+                                })
+                            ]
+                        })
+                    ]
+                }]
+            });
+            
+            Packer.toBlob(doc).then(blob => {
+                const filename = `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.docx`;
+                downloadFile(blob, filename);
+            });
+        };
+        
+        script.onerror = function() {
+            showError('Failed to load DOCX generation library');
+        };
+        
+        document.head.appendChild(script);
+    }
+    
+    function downloadFile(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
     
     function typeWriterEffect(element, text, speed = 10) {
@@ -758,6 +989,25 @@ document.addEventListener('DOMContentLoaded', function() {
     sidebarToggleBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', closeSidebar);
     copyBtn.addEventListener('click', copyToClipboard);
+    
+    const toggleViewBtn = document.getElementById('toggle-view-btn');
+    if (toggleViewBtn) {
+        toggleViewBtn.addEventListener('click', function() {
+            const singleView = document.getElementById('single-response-view');
+            const multiView = document.getElementById('multi-response-view');
+            const viewModeText = document.getElementById('view-mode-text');
+            
+            if (singleView.style.display === 'none') {
+                singleView.style.display = 'block';
+                multiView.style.display = 'none';
+                viewModeText.textContent = 'Grid View';
+            } else {
+                singleView.style.display = 'none';
+                multiView.style.display = 'block';
+                viewModeText.textContent = 'Single View';
+            }
+        });
+    }
     
     downloadBtn.addEventListener('click', function(e) {
         e.preventDefault();
