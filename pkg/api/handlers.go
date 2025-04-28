@@ -505,6 +505,7 @@ func (h *Handler) DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		
 	default:
 		handleError(w, "Unsupported format. Supported formats are: txt, pdf, docx.", http.StatusBadRequest)
+	}
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
@@ -525,7 +526,6 @@ func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	}
 }
 
-// handleError logs an error and sends an error response
 func handleError(w http.ResponseWriter, message string, statusCode int) {
 	logrus.Error(message)
 	
