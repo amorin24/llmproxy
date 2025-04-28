@@ -76,6 +76,10 @@ type Config struct {
 	CacheEnabled      bool
 	CacheTTL          int  // Time to live in seconds
 	KeyRotationHours  int  // Hours between key rotations
+	HTTPTimeout       int  // HTTP client timeout in seconds
+	MaxIdleConns      int  // Maximum number of idle connections
+	MaxIdleConnsPerHost int // Maximum number of idle connections per host
+	IdleConnTimeout   int  // Idle connection timeout in seconds
 	lastKeyCheck      time.Time
 	encryptionKey     []byte
 	mutex             sync.RWMutex
@@ -116,11 +120,15 @@ func GetConfig() *Config {
 				LastRotated: time.Now(),
 				Encrypted:   false,
 			},
-			Port:             getEnvWithDefault("PORT", "8080"),
-			CacheEnabled:     getEnvAsBool("CACHE_ENABLED", true),
-			CacheTTL:         getEnvAsInt("CACHE_TTL", 300),
-			KeyRotationHours: getEnvAsInt("KEY_ROTATION_HOURS", defaultKeyRotationInterval),
-			lastKeyCheck:     time.Now(),
+			Port:               getEnvWithDefault("PORT", "8080"),
+			CacheEnabled:       getEnvAsBool("CACHE_ENABLED", true),
+			CacheTTL:           getEnvAsInt("CACHE_TTL", 300),
+			KeyRotationHours:   getEnvAsInt("KEY_ROTATION_HOURS", defaultKeyRotationInterval),
+			HTTPTimeout:        getEnvAsInt("HTTP_TIMEOUT", 30),
+			MaxIdleConns:       getEnvAsInt("MAX_IDLE_CONNS", 100),
+			MaxIdleConnsPerHost: getEnvAsInt("MAX_IDLE_CONNS_PER_HOST", 20),
+			IdleConnTimeout:    getEnvAsInt("IDLE_CONN_TIMEOUT", 90),
+			lastKeyCheck:       time.Now(),
 		}
 		
 		if encryptionKey != "" {

@@ -15,3 +15,45 @@ services:
       - CACHE_TTL=300
     volumes:
       - ./ui:/app/ui
+    depends_on:
+      - prometheus
+
+  llmproxy-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - OPENAI_API_KEY=${TEST_OPENAI_API_KEY:-dummy_key}
+      - GEMINI_API_KEY=${TEST_GEMINI_API_KEY:-dummy_key}
+      - MISTRAL_API_KEY=${TEST_MISTRAL_API_KEY:-dummy_key}
+      - CLAUDE_API_KEY=${TEST_CLAUDE_API_KEY:-dummy_key}
+      - PORT=8080
+      - CACHE_ENABLED=true
+      - CACHE_TTL=300
+    command: go test -v ./pkg/api/... -coverprofile=coverage.out
+    
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus

@@ -16,7 +16,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.querySelector('.sidebar-overlay');
+    const multiModelCheckbox = document.getElementById('multi-model-checkbox');
+    const modelSelection = document.getElementById('model-selection');
     let tempErrorEl = null;
+    
+    if (multiModelCheckbox && modelSelection) {
+        multiModelCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                modelSelection.style.display = 'block';
+                modelEl.disabled = true;
+            } else {
+                modelSelection.style.display = 'none';
+                modelEl.disabled = false;
+            }
+        });
+    }
     
     function initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -140,19 +154,38 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        const multiModelCheckbox = document.getElementById('multi-model-checkbox');
+        const isMultiModel = multiModelCheckbox && multiModelCheckbox.checked;
+        
         const requestData = {
             query: query,
             request_id: generateRequestId()
         };
         
         const selectedModel = modelEl.value;
-        if (selectedModel) {
+        if (selectedModel && !isMultiModel) {
             requestData.model = selectedModel;
         }
         
         const selectedTaskType = taskTypeEl.value;
         if (selectedTaskType) {
             requestData.task_type = selectedTaskType;
+        }
+        
+        if (isMultiModel) {
+            const modelCheckboxes = document.querySelectorAll('.model-checkbox:checked');
+            const selectedModels = Array.from(modelCheckboxes).map(cb => cb.value);
+            
+            if (selectedModels.length === 0) {
+                if (selectedModel) {
+                    requestData.models = [selectedModel];
+                } else {
+                    showError('Please select at least one model');
+                    return;
+                }
+            } else {
+                requestData.models = selectedModels;
+            }
         }
         
         submitBtn.disabled = true;
@@ -165,49 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const responseContainer = document.querySelector('.response-container');
         responseContainer.classList.add('loading-response');
         
-        // TESTING MODE - Always use test mode for now
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            buttonText.style.opacity = '1';
-            buttonLoader.style.display = 'none';
-            
-            const data = {
-                response: "This is a simulated response for testing purposes. The actual LLM models are currently unavailable. This response allows testing of the copy and download functionality.",
-                model: selectedModel || "openai",
-                response_time_ms: 1250,
-                cached: false,
-                input_tokens: 15,
-                output_tokens: 25,
-                total_tokens: 40,
-                num_retries: 0
-            };
-            
-            let infoHtml = `
-                <div class="response-meta-item"><strong>Model:</strong> ${data.model}</div>
-                <div class="response-meta-item"><strong>Response Time:</strong> ${data.response_time_ms}ms</div>
-                <div class="response-meta-item"><strong>Cached:</strong> No</div>
-            `;
-            
-            responseInfoEl.innerHTML = infoHtml;
-            
-            const tokenUsageEl = document.getElementById('token-usage');
-            let tokenHtml = `<h4>Token Usage</h4>`;
-            tokenHtml += `<div class="token-breakdown">`;
-            tokenHtml += `<div><strong>Total:</strong> ${data.total_tokens}</div>`;
-            tokenHtml += `<div><strong>Input:</strong> ${data.input_tokens}</div>`;
-            tokenHtml += `<div><strong>Output:</strong> ${data.output_tokens}</div>`;
-            tokenHtml += `</div>`;
-            tokenUsageEl.innerHTML = tokenHtml;
-            tokenUsageEl.style.display = 'block';
-            
-            typeWriterEffect(responseEl, data.response);
-            
-            responseContainer.classList.remove('loading-response');
-        }, 1500);
+        const endpoint = isMultiModel ? '/api/query-parallel' : '/api/query';
         
-        return;
-        
-        fetch('/api/query', {
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -228,68 +221,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                const model = data.model.charAt(0).toUpperCase() + data.model.slice(1);
-                const cached = data.cached ? 'Yes' : 'No';
-                const time = data.response_time_ms;
-                
-                let infoHtml = `
-                    <div class="response-meta-item"><strong>Model:</strong> ${model}</div>
-                    <div class="response-meta-item"><strong>Response Time:</strong> ${time}ms</div>
-                    <div class="response-meta-item"><strong>Cached:</strong> ${cached}</div>
-                `;
-                
-                if (data.total_tokens) {
-                    infoHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${data.total_tokens}</div>`;
-                    
-                    if (data.input_tokens && data.output_tokens) {
-                        infoHtml += `<div class="response-meta-item"><strong>Input/Output:</strong> ${data.input_tokens}/${data.output_tokens}</div>`;
-                    }
-                } else if (data.num_tokens) {
-                    infoHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${data.num_tokens}</div>`;
-                }
-                
-                if (data.num_retries) {
-                    infoHtml += `<div class="response-meta-item"><strong>Retries:</strong> ${data.num_retries}</div>`;
-                }
-                
-                if (data.original_model) {
-                    const originalModel = data.original_model.charAt(0).toUpperCase() + data.original_model.slice(1);
-                    infoHtml += `<div class="response-meta-item"><strong>Fallback from:</strong> ${originalModel}</div>`;
-                }
-                
-                if (data.request_id) {
-                    infoHtml += `<div class="response-meta-item"><strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...</div>`;
-                }
-                
-                const tokenUsageEl = document.getElementById('token-usage');
-                if (data.total_tokens || data.input_tokens || data.output_tokens) {
-                    let tokenHtml = `<h4>Token Usage</h4>`;
-                    tokenHtml += `<div class="token-breakdown">`;
-                    
-                    if (data.total_tokens) {
-                        tokenHtml += `<div><strong>Total:</strong> ${data.total_tokens}</div>`;
-                    } else if (data.num_tokens) {
-                        tokenHtml += `<div><strong>Total:</strong> ${data.num_tokens}</div>`;
-                    }
-                    
-                    if (data.input_tokens) {
-                        tokenHtml += `<div><strong>Input:</strong> ${data.input_tokens}</div>`;
-                    }
-                    
-                    if (data.output_tokens) {
-                        tokenHtml += `<div><strong>Output:</strong> ${data.output_tokens}</div>`;
-                    }
-                    
-                    tokenHtml += `</div>`;
-                    tokenUsageEl.innerHTML = tokenHtml;
-                    tokenUsageEl.style.display = 'block';
+                if (isMultiModel) {
+                    displayMultiModelResponse(data);
                 } else {
-                    tokenUsageEl.style.display = 'none';
+                    displaySingleModelResponse(data);
                 }
-                
-                responseInfoEl.innerHTML = infoHtml;
-                
-                typeWriterEffect(responseEl, data.response);
                 
                 responseContainer.classList.remove('loading-response');
             })
@@ -306,6 +242,161 @@ document.addEventListener('DOMContentLoaded', function() {
                 buttonText.style.opacity = '1';
                 buttonLoader.style.display = 'none';
             });
+    }
+    
+    function displaySingleModelResponse(data) {
+        const model = data.model.charAt(0).toUpperCase() + data.model.slice(1);
+        const cached = data.cached ? 'Yes' : 'No';
+        const time = data.response_time_ms;
+        
+        let infoHtml = `
+            <div class="response-meta-item"><strong>Model:</strong> ${model}</div>
+            <div class="response-meta-item"><strong>Response Time:</strong> ${time}ms</div>
+            <div class="response-meta-item"><strong>Cached:</strong> ${cached}</div>
+        `;
+        
+        if (data.total_tokens) {
+            infoHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${data.total_tokens}</div>`;
+            
+            if (data.input_tokens && data.output_tokens) {
+                infoHtml += `<div class="response-meta-item"><strong>Input/Output:</strong> ${data.input_tokens}/${data.output_tokens}</div>`;
+            }
+        } else if (data.num_tokens) {
+            infoHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${data.num_tokens}</div>`;
+        }
+        
+        if (data.num_retries) {
+            infoHtml += `<div class="response-meta-item"><strong>Retries:</strong> ${data.num_retries}</div>`;
+        }
+        
+        if (data.original_model) {
+            const originalModel = data.original_model.charAt(0).toUpperCase() + data.original_model.slice(1);
+            infoHtml += `<div class="response-meta-item"><strong>Fallback from:</strong> ${originalModel}</div>`;
+        }
+        
+        if (data.request_id) {
+            infoHtml += `<div class="response-meta-item"><strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...</div>`;
+        }
+        
+        const tokenUsageEl = document.getElementById('token-usage');
+        if (data.total_tokens || data.input_tokens || data.output_tokens) {
+            let tokenHtml = `<h4>Token Usage</h4>`;
+            tokenHtml += `<div class="token-breakdown">`;
+            
+            if (data.total_tokens) {
+                tokenHtml += `<div><strong>Total:</strong> ${data.total_tokens}</div>`;
+            } else if (data.num_tokens) {
+                tokenHtml += `<div><strong>Total:</strong> ${data.num_tokens}</div>`;
+            }
+            
+            if (data.input_tokens) {
+                tokenHtml += `<div><strong>Input:</strong> ${data.input_tokens}</div>`;
+            }
+            
+            if (data.output_tokens) {
+                tokenHtml += `<div><strong>Output:</strong> ${data.output_tokens}</div>`;
+            }
+            
+            tokenHtml += `</div>`;
+            tokenUsageEl.innerHTML = tokenHtml;
+            tokenUsageEl.style.display = 'block';
+        } else {
+            tokenUsageEl.style.display = 'none';
+        }
+        
+        responseInfoEl.innerHTML = infoHtml;
+        
+        typeWriterEffect(responseEl, data.response);
+    }
+    
+    function displayMultiModelResponse(data) {
+        const responses = data.responses;
+        const elapsedTime = data.elapsed_time;
+        
+        let responsesHtml = `
+            <div class="multi-model-responses">
+                <div class="multi-model-header">
+                    <h3>Responses from Multiple Models</h3>
+                    <div class="response-meta-item"><strong>Total Time:</strong> ${data.elapsed_time_ms}ms</div>
+                    <div class="response-meta-item"><strong>Request ID:</strong> ${data.request_id.substring(0, 8)}...</div>
+                </div>
+                <div class="model-tabs">
+        `;
+        
+        let tabsHtml = '';
+        let contentHtml = '';
+        let firstModel = true;
+        
+        for (const [modelName, response] of Object.entries(responses)) {
+            const model = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+            const activeClass = firstModel ? 'active' : '';
+            const modelIcon = getModelIcon(modelName);
+            
+            tabsHtml += `
+                <div class="model-tab ${activeClass}" data-model="${modelName}">
+                    <div class="model-icon">${modelIcon}</div>
+                    <div>${model}</div>
+                </div>
+            `;
+            
+            contentHtml += `
+                <div class="model-response ${activeClass}" id="response-${modelName}">
+                    <div class="model-response-meta">
+                        <div class="response-meta-item"><strong>Response Time:</strong> ${response.response_time}ms</div>
+            `;
+            
+            if (response.total_tokens) {
+                contentHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.total_tokens}</div>`;
+                
+                if (response.input_tokens && response.output_tokens) {
+                    contentHtml += `<div class="response-meta-item"><strong>Input/Output:</strong> ${response.input_tokens}/${response.output_tokens}</div>`;
+                }
+            } else if (response.num_tokens) {
+                contentHtml += `<div class="response-meta-item"><strong>Tokens:</strong> ${response.num_tokens}</div>`;
+            }
+            
+            if (response.num_retries) {
+                contentHtml += `<div class="response-meta-item"><strong>Retries:</strong> ${response.num_retries}</div>`;
+            }
+            
+            if (response.error) {
+                contentHtml += `
+                        <div class="response-meta-item error"><strong>Error:</strong> ${response.error}</div>
+                    </div>
+                    <div class="model-response-content error">${response.response}</div>
+                </div>
+                `;
+            } else {
+                contentHtml += `
+                        </div>
+                        <div class="model-response-content">${response.response}</div>
+                    </div>
+                `;
+            }
+            
+            firstModel = false;
+        }
+        
+        responsesHtml += tabsHtml;
+        responsesHtml += `</div><div class="model-responses-content">`;
+        responsesHtml += contentHtml;
+        responsesHtml += `</div></div>`;
+        
+        responseEl.innerHTML = responsesHtml;
+        
+        document.querySelectorAll('.model-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const model = tab.dataset.model;
+                
+                document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.model-response').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`response-${model}`).classList.add('active');
+            });
+        });
+        
+        responseInfoEl.innerHTML = '';
     }
     
     function typeWriterEffect(element, text, speed = 10) {
@@ -370,7 +461,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function copyToClipboard() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to copy');
@@ -423,7 +541,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsTxt() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    responseText = `=== ${modelName.toUpperCase()} RESPONSE ===\n${modelResponseContent.textContent}`;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                responseText = "=== LLM PROXY MULTI-MODEL RESPONSES ===\n\n";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -444,7 +590,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsPdf() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        let title = 'LLM Response';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    title = `${modelName.toUpperCase()} Response`;
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                title = "LLM Proxy Multi-Model Responses";
+                responseText = "";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -458,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const doc = new jsPDF();
             
             doc.setFontSize(16);
-            doc.text('LLM Response', 20, 20);
+            doc.text(title, 20, 20);
             
             doc.setFontSize(10);
             doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
@@ -479,7 +656,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function downloadAsDocx() {
-        const responseText = responseEl.textContent;
+        let responseText = '';
+        let title = 'LLM Response';
+        
+        const multiModelResponses = document.querySelector('.multi-model-responses');
+        if (multiModelResponses) {
+            const activeTab = document.querySelector('.model-tab.active');
+            if (activeTab) {
+                const modelName = activeTab.dataset.model;
+                const modelResponseContent = document.querySelector(`#response-${modelName} .model-response-content`);
+                if (modelResponseContent) {
+                    title = `${modelName.toUpperCase()} Response`;
+                    responseText = modelResponseContent.textContent;
+                }
+            } else {
+                const allResponses = {};
+                document.querySelectorAll('.model-response').forEach(response => {
+                    const modelName = response.id.replace('response-', '');
+                    const content = response.querySelector('.model-response-content');
+                    if (content) {
+                        allResponses[modelName] = content.textContent;
+                    }
+                });
+                
+                title = "LLM Proxy Multi-Model Responses";
+                responseText = "";
+                for (const [model, text] of Object.entries(allResponses)) {
+                    responseText += `=== ${model.toUpperCase()} RESPONSE ===\n${text}\n\n`;
+                }
+            }
+        } else {
+            responseText = responseEl.textContent;
+        }
         
         if (!responseText) {
             showError('No response to download');
@@ -498,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         new Paragraph({
                             children: [
                                 new TextRun({
-                                    text: 'LLM Response',
+                                    text: title,
                                     bold: true,
                                     size: 28
                                 })

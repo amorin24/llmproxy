@@ -485,6 +485,48 @@ label {
     transform: translateY(-50%) rotate(180deg);
 }
 
+/* Checkbox Styles */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: var(--spacing-sm);
+    cursor: pointer;
+}
+
+.model-selection {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed) var(--transition-func);
+}
+
+.light-theme .model-selection {
+    background-color: var(--light-input-bg);
+    border: 1px solid var(--light-border);
+}
+
+.dark-theme .model-selection {
+    background-color: var(--dark-input-bg);
+    border: 1px solid var(--dark-border);
+}
+
+.model-checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.model-checkbox-item {
+    display: flex;
+    align-items: center;
+}
+
 .custom-input {
     width: 100%;
     padding: 12px 16px;
