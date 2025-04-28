@@ -94,12 +94,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="multi-model-checkbox" class="custom-checkbox">
-                        <label for="multi-model-checkbox">Query Multiple Models</label>
-                    </div>
-                    
-                    <div id="model-selection" class="model-selection" style="display: none;">
+                    <label for="model-selection">Select Models:</label>
+                    <div class="model-selection-container">
                         <div class="model-checkbox-group">
                             <div class="model-checkbox-item">
                                 <input type="checkbox" id="model-openai" class="model-checkbox custom-checkbox" value="openai" checked>
@@ -117,6 +113,10 @@
                                 <input type="checkbox" id="model-claude" class="model-checkbox custom-checkbox" value="claude" checked>
                                 <label for="model-claude">Claude</label>
                             </div>
+                        </div>
+                        <div class="model-selection-info">
+                            <span class="model-count-badge">0 selected</span>
+                            <span class="model-selection-hint">Select multiple models to compare responses side-by-side</span>
                         </div>
                     </div>
                 </div>
@@ -171,12 +171,37 @@
                                 </button>
                             </div>
                         </div>
+                        <button id="toggle-view-btn" class="action-button" title="Toggle view mode">
+                            <i class="fas fa-columns"></i> <span id="view-mode-text">Grid View</span>
+                        </button>
                     </div>
                 </div>
-                <div id="response-info" class="response-info"></div>
-                <div id="response" class="response-content"></div>
-                <div id="token-usage" class="token-usage"></div>
-                <div id="response-metadata" class="response-metadata"></div>
+                
+                <!-- Single response view -->
+                <div id="single-response-view">
+                    <div id="response-info" class="response-info"></div>
+                    <div id="response" class="response-content"></div>
+                    <div id="token-usage" class="token-usage"></div>
+                    <div id="response-metadata" class="response-metadata"></div>
+                </div>
+                
+                <!-- Multiple response view -->
+                <div id="multi-response-view" style="display: none;">
+                    <div class="view-controls">
+                        <div class="view-mode-toggle">
+                            <button id="grid-view-btn" class="view-mode-btn active" title="Grid View">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button id="side-by-side-btn" class="view-mode-btn" title="Side by Side">
+                                <i class="fas fa-columns"></i>
+                            </button>
+                            <button id="stacked-view-btn" class="view-mode-btn" title="Stacked View">
+                                <i class="fas fa-layer-group"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="multi-model-responses" class="multi-model-responses grid-view"></div>
+                </div>
             </div>
         </div>
     </div>

@@ -29,7 +29,7 @@ func main() {
 	handler := api.NewHandler()
 
 	r.HandleFunc("/api/query", handler.QueryHandler).Methods("POST")
-	r.HandleFunc("/api/query-parallel", handler.ParallelQueryHandler).Methods("POST")
+	r.HandleFunc("/api/parallel", handler.ParallelQueryHandler).Methods("POST")
 	r.HandleFunc("/api/status", handler.StatusHandler).Methods("GET")
 	r.HandleFunc("/api/download", handler.DownloadHandler).Methods("POST")
 	r.HandleFunc("/api/health", handler.HealthHandler).Methods("GET")
