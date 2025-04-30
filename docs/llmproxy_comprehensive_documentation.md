@@ -159,7 +159,7 @@ Request body:
 ```json
 {
   "query": "Your question or prompt here",
-  "model": "openai", // Optional: "openai", "gemini", "mistral", "claude", or "auto"
+  "model": "openai", // Optional: "openai" (gpt-4.1, gpt-3.5-turbo, etc.), "gemini" (gemini-2.0-flash, etc.), "mistral" (mistral-medium-latest, etc.), "claude" (claude-3-sonnet-20240229, etc.), or "auto"
   "task_type": "generation", // Optional: "generation", "summarization", "analysis", etc.
   "parameters": { // Optional model-specific parameters
     "temperature": 0.7,
@@ -244,23 +244,31 @@ Response:
   "models": [
     {
       "name": "openai",
+      "version": "gpt-3.5-turbo",
       "available": true,
-      "latency_ms": 450
+      "latency_ms": 450,
+      "supported_versions": ["gpt-4.1", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", "o4-mini", "o3"]
     },
     {
       "name": "gemini",
+      "version": "gemini-2.0-flash",
       "available": true,
-      "latency_ms": 550
+      "latency_ms": 550,
+      "supported_versions": ["gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-pro", "gemini-pro-vision"]
     },
     {
       "name": "mistral",
+      "version": "mistral-medium-latest",
       "available": true,
-      "latency_ms": 350
+      "latency_ms": 350,
+      "supported_versions": ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "codestral-latest"]
     },
     {
       "name": "claude",
+      "version": "claude-3-sonnet-20240229",
       "available": true,
-      "latency_ms": 650
+      "latency_ms": 650,
+      "supported_versions": ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
     }
   ]
 }
@@ -388,10 +396,10 @@ The LLM Proxy System is configured using environment variables, typically stored
 
 ```
 # LLM API Keys
-OPENAI_API_KEY=your_openai_api_key
-GEMINI_API_KEY=your_gemini_api_key
-MISTRAL_API_KEY=your_mistral_api_key
-CLAUDE_API_KEY=your_claude_api_key
+OPENAI_API_KEY=your_openai_api_key  # Required for OpenAI models (gpt-4.1, gpt-3.5-turbo, etc.)
+GEMINI_API_KEY=your_gemini_api_key  # Required for Gemini models (gemini-2.0-flash, gemini-1.5-flash, etc.)
+MISTRAL_API_KEY=your_mistral_api_key  # Required for Mistral models (mistral-medium-latest, etc.)
+CLAUDE_API_KEY=your_claude_api_key  # Required for Claude models (claude-3-sonnet-20240229, etc.)
 
 # Server Configuration
 PORT=8080
