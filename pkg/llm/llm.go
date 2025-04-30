@@ -9,31 +9,42 @@ import (
 
 const (
 	DefaultOpenAIVersion  = "gpt-3.5-turbo"
-	DefaultGeminiVersion  = "gemini-pro"
-	DefaultMistralVersion = "mistral-medium"
+	DefaultGeminiVersion  = "gemini-2.0-flash"
+	DefaultMistralVersion = "mistral-medium-latest"
 	DefaultClaudeVersion  = "claude-3-sonnet-20240229"
 )
 
 var SupportedModelVersions = map[models.ModelType][]string{
 	models.OpenAI: {
-		"gpt-3.5-turbo",
-		"gpt-4",
+		"gpt-4.1",
+		"gpt-4o",
 		"gpt-4-turbo",
+		"gpt-4",
+		"gpt-3.5-turbo",
+		"o4-mini",
+		"o3",
 	},
 	models.Gemini: {
+		"gemini-2.5-flash-preview-04-17",
+		"gemini-2.5-pro-preview-03-25",
+		"gemini-2.0-flash",
+		"gemini-2.0-flash-lite",
+		"gemini-1.5-flash",
+		"gemini-1.5-flash-8b",
+		"gemini-1.5-pro",
 		"gemini-pro",
 		"gemini-pro-vision",
 	},
 	models.Mistral: {
-		"mistral-tiny",
-		"mistral-small",
-		"mistral-medium",
-		"mistral-large",
+		"mistral-small-latest",
+		"mistral-medium-latest",
+		"mistral-large-latest",
+		"codestral-latest",
 	},
 	models.Claude: {
-		"claude-3-haiku",
-		"claude-3-sonnet",
-		"claude-3-opus",
+		"claude-3-haiku-20240307",
+		"claude-3-sonnet-20240229",
+		"claude-3-opus-20240229",
 	},
 }
 
