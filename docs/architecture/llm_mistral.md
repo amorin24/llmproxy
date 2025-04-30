@@ -161,7 +161,7 @@ The Mistral client integrates with Mistral's API:
 
 1. **API Endpoint**: Uses the `https://api.mistral.ai/v1/chat/completions` endpoint for queries
 2. **Authentication**: Uses Bearer token authentication with the API key
-3. **Model Selection**: Uses the `mistral-medium` model
+3. **Model Selection**: Uses the `mistral-medium-latest` model
 4. **Parameters**: Configures temperature and maximum tokens for the request
 
 This API integration allows the Mistral client to communicate with Mistral's API using the appropriate endpoints, authentication, and parameters.

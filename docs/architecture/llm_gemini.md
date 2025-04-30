@@ -175,7 +175,7 @@ The Gemini client integrates with Gemini's API:
 
 1. **API Endpoint**: Uses the `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent` endpoint for queries
 2. **API Key**: Includes the API key as a query parameter in the URL
-3. **Model Selection**: Uses the `gemini-pro` model
+3. **Model Selection**: Uses the `gemini-2.0-flash` model
 4. **Parameters**: Configures temperature and maximum output tokens for the request
 
 This API integration allows the Gemini client to communicate with Gemini's API using the appropriate endpoints, authentication, and parameters.

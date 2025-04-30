@@ -166,7 +166,7 @@ The OpenAI client integrates with OpenAI's API:
 
 1. **API Endpoint**: Uses the `https://api.openai.com/v1/chat/completions` endpoint for queries
 2. **Authentication**: Uses Bearer token authentication with the API key
-3. **Model Selection**: Uses the `gpt-3.5-turbo` model
+3. **Model Selection**: Uses the `gpt-4.1` model
 4. **Parameters**: Configures temperature and maximum tokens for the request
 
 This API integration allows the OpenAI client to communicate with OpenAI's API using the appropriate endpoints, authentication, and parameters.
