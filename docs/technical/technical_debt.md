@@ -91,7 +91,7 @@ These hardcoded values limit flexibility for different use cases.
 ```go
 // In Gemini client
 if strings.HasPrefix(c.apiKey, "test_") {
-    logrus.Info("Using test Gemini key, returning simulated response")
+    logrus.Info("Using test Gemini key for model gemini-2.0-flash, returning simulated response")
     // ...
 }
 ```
