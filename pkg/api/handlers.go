@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ const (
 	defaultRateLimit      = 60          // Requests per minute
 	defaultRateLimitBurst = 10          // Burst capacity
 	defaultTimeout        = 30 * time.Second
+	clientLimiterExpiry   = 24 * time.Hour // Time after which unused client limiters are removed
 )
 
 type RateLimiter struct {
@@ -34,18 +36,27 @@ type RateLimiter struct {
 	lastRefill     time.Time
 	refillRate     float64 // tokens per second
 	maxTokens      float64
-	mutex          sync.Mutex
-	clientLimiters map[string]*RateLimiter // IP-based limiters
+	mutex          sync.RWMutex // Using RWMutex for better read concurrency
+	clientLimiters map[string]*clientLimiter
 	allowClientFunc func(clientID string) bool // For testing purposes
+	lastCleanup    time.Time
+	cleanupInterval time.Duration
+}
+
+type clientLimiter struct {
+	limiter  *RateLimiter
+	lastSeen time.Time
 }
 
 func NewRateLimiter(requestsPerMinute, burst int) *RateLimiter {
 	return &RateLimiter{
-		tokens:         float64(burst),
-		lastRefill:     time.Now(),
-		refillRate:     float64(requestsPerMinute) / 60.0, // Convert to per-second
-		maxTokens:      float64(burst),
-		clientLimiters: make(map[string]*RateLimiter),
+		tokens:          float64(burst),
+		lastRefill:      time.Now(),
+		refillRate:      float64(requestsPerMinute) / 60.0, // Convert to per-second
+		maxTokens:       float64(burst),
+		clientLimiters:  make(map[string]*clientLimiter),
+		lastCleanup:     time.Now(),
+		cleanupInterval: 10 * time.Minute,
 	}
 }
 
@@ -70,18 +81,57 @@ func (rl *RateLimiter) AllowClient(clientID string) bool {
 		return rl.allowClientFunc(clientID)
 	}
 
-	rl.mutex.Lock()
+	now := time.Now()
 	
-	if _, exists := rl.clientLimiters[clientID]; !exists {
-		rl.clientLimiters[clientID] = NewRateLimiter(
-			int(rl.refillRate*60), // Convert back to per-minute
-			int(rl.maxTokens),
-		)
+	// Use read lock for lookups
+	rl.mutex.RLock()
+	cl, exists := rl.clientLimiters[clientID]
+	rl.mutex.RUnlock()
+	
+	if !exists {
+		rl.mutex.Lock()
+		// Check again in case another goroutine created it
+		cl, exists = rl.clientLimiters[clientID]
+		if !exists {
+			cl = &clientLimiter{
+				limiter: NewRateLimiter(
+					int(rl.refillRate*60), // Convert back to per-minute
+					int(rl.maxTokens),
+				),
+				lastSeen: now,
+			}
+			rl.clientLimiters[clientID] = cl
+		}
+		
+		// Cleanup expired limiters periodically
+		if now.Sub(rl.lastCleanup) > rl.cleanupInterval {
+			go rl.cleanup(now)
+			rl.lastCleanup = now
+		}
+		
+		rl.mutex.Unlock()
+	} else {
+		// Update last seen time
+		rl.mutex.Lock()
+		cl.lastSeen = now
+		rl.mutex.Unlock()
 	}
-	clientLimiter := rl.clientLimiters[clientID]
-	rl.mutex.Unlock()
 	
-	return clientLimiter.Allow()
+	return cl.limiter.Allow()
+}
+
+// cleanup removes old client limiters to prevent memory leaks
+func (rl *RateLimiter) cleanup(now time.Time) {
+	rl.mutex.Lock()
+	defer rl.mutex.Unlock()
+	
+	expiredClientThreshold := now.Add(-clientLimiterExpiry)
+	
+	for clientID, cl := range rl.clientLimiters {
+		if cl.lastSeen.Before(expiredClientThreshold) {
+			delete(rl.clientLimiters, clientID)
+		}
+	}
 }
 
 func (rl *RateLimiter) SetAllowClientFunc(fn func(clientID string) bool) {
@@ -92,6 +142,33 @@ type Handler struct {
 	router      RouterInterface
 	cache       CacheInterface
 	rateLimiter *RateLimiter
+}
+
+// Pre-define maps for validation lookups
+var validModels = map[models.ModelType]bool{
+	models.OpenAI:  true,
+	models.Gemini:  true,
+	models.Mistral: true,
+	models.Claude:  true,
+}
+
+var validTaskTypes = map[models.TaskType]bool{
+	models.TextGeneration:   true,
+	models.Summarization:    true,
+	models.SentimentAnalysis: true,
+	models.QuestionAnswering: true,
+}
+
+// Common response headers
+var commonHeaders = map[string]string{
+	"Content-Type":                     "application/json",
+	"X-Content-Type-Options":           "nosniff",
+	"X-Frame-Options":                  "DENY",
+	"X-XSS-Protection":                 "1; mode=block",
+	"Content-Security-Policy":          "default-src 'self'",
+	"Referrer-Policy":                  "strict-origin-when-cross-origin",
+	"Cache-Control":                    "no-store, no-cache, must-revalidate, max-age=0",
+	"Strict-Transport-Security":        "max-age=31536000; includeSubDomains",
 }
 
 func NewHandler() *Handler {
@@ -129,49 +206,25 @@ func validateQueryRequest(req models.QueryRequest) error {
 		return fmt.Errorf("query exceeds maximum length of %d characters", maxQueryLength)
 	}
 	
-	if req.Model != "" {
-		validModels := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude}
-		valid := false
-		
-		for _, model := range validModels {
-			if req.Model == model {
-				valid = true
-				break
-			}
-		}
-		
-		if !valid {
-			return fmt.Errorf("invalid model: %s", req.Model)
-		}
+	if req.Model != "" && !validModels[req.Model] {
+		return fmt.Errorf("invalid model: %s", req.Model)
 	}
 	
-	if req.TaskType != "" {
-		validTaskTypes := []models.TaskType{
-			models.TextGeneration,
-			models.Summarization,
-			models.SentimentAnalysis,
-			models.QuestionAnswering,
-		}
-		valid := false
-		
-		for _, taskType := range validTaskTypes {
-			if req.TaskType == taskType {
-				valid = true
-				break
-			}
-		}
-		
-		if !valid {
-			return fmt.Errorf("invalid task type: %s", req.TaskType)
-		}
+	if req.TaskType != "" && !validTaskTypes[req.TaskType] {
+		return fmt.Errorf("invalid task type: %s", req.TaskType)
 	}
 	
 	return nil
 }
 
 func sanitizeQuery(query string) string {
-	sanitized := strings.TrimSpace(query)
-	return sanitized
+	return strings.TrimSpace(query)
+}
+
+func setCommonHeaders(w http.ResponseWriter) {
+	for key, value := range commonHeaders {
+		w.Header().Set(key, value)
+	}
 }
 
 func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
@@ -192,18 +245,12 @@ func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
 	
 	var req models.QueryRequest
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		if err.Error() == "http: request body too large" {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
 			handleError(w, "Request body too large", http.StatusRequestEntityTooLarge)
 		} else {
-			handleError(w, "Error reading request body", http.StatusBadRequest)
+			handleError(w, "Invalid JSON in request body", http.StatusBadRequest)
 		}
-		return
-	}
-	
-	if err := json.Unmarshal(bodyBytes, &req); err != nil {
-		handleError(w, "Invalid JSON in request body", http.StatusBadRequest)
 		return
 	}
 	
@@ -238,32 +285,6 @@ func (h *Handler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	
 	startTime := time.Now()
-	
-	select {
-	case <-ctx.Done():
-		if errors.Is(ctx.Err(), context.Canceled) {
-			logging.LogResponse(logging.LogFields{
-				Model:      "",
-				Error:      "request canceled by client",
-				ErrorType:  "context_canceled",
-				RequestID:  requestID,
-				Timestamp:  time.Now(),
-			})
-			handleError(w, "Request was canceled by client", 499) // Client Closed Request
-			return
-		} else if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			logging.LogResponse(logging.LogFields{
-				Model:      "",
-				Error:      "request timeout",
-				ErrorType:  "context_timeout",
-				RequestID:  requestID,
-				Timestamp:  time.Now(),
-			})
-			handleError(w, "Request timed out", http.StatusRequestTimeout)
-			return
-		}
-	default:
-	}
 	
 	modelType, err := h.router.RouteRequest(ctx, req)
 	if err != nil {
@@ -509,15 +530,7 @@ func (h *Handler) DownloadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'")
-	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-	w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-	
+	setCommonHeaders(w)
 	w.WriteHeader(statusCode)
 	
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -533,15 +546,7 @@ func handleError(w http.ResponseWriter, message string, statusCode int) {
 		"error": message,
 	}
 	
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'")
-	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-	w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-	
+	setCommonHeaders(w)
 	w.WriteHeader(statusCode)
 	
 	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
@@ -551,13 +556,13 @@ func handleError(w http.ResponseWriter, message string, statusCode int) {
 }
 
 func getEnvAsInt(key string, defaultValue int) int {
-	valueStr := strings.TrimSpace(strings.ToLower(key))
+	valueStr := os.Getenv(key)
 	if valueStr == "" {
 		return defaultValue
 	}
 	
-	var value int
-	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
 		return defaultValue
 	}
 	

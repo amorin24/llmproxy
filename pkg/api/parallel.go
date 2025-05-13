@@ -31,6 +31,23 @@ type ParallelQueryResponse struct {
 	ElapsedTime int64                           `json:"elapsed_time_ms"`
 }
 
+// Pre-defined slices and maps to reduce allocations and improve lookup times.
+var (
+	defaultParallelModels = []models.ModelType{
+		models.OpenAI,
+		models.Gemini,
+		models.Mistral,
+		models.Claude,
+	}
+
+	validParallelQueryModelsSet = map[models.ModelType]struct{}{
+		models.OpenAI:  {},
+		models.Gemini:  {},
+		models.Mistral: {},
+		models.Claude:  {},
+	}
+)
+
 func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		handleError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -75,23 +92,11 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if len(req.Models) == 0 {
-		req.Models = []models.ModelType{
-			models.OpenAI,
-			models.Gemini,
-			models.Mistral,
-			models.Claude,
-		}
+		req.Models = defaultParallelModels
 	}
 	
 	for _, model := range req.Models {
-		valid := false
-		for _, validModel := range []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude} {
-			if model == validModel {
-				valid = true
-				break
-			}
-		}
-		if !valid {
+		if _, ok := validParallelQueryModelsSet[model]; !ok {
 			handleError(w, "Invalid model: "+string(model), http.StatusBadRequest)
 			return
 		}
@@ -116,7 +121,7 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 	
 	startTime := time.Now()
 	
-	responses := make(map[string]models.QueryResponse)
+	responses := make(map[string]models.QueryResponse, len(req.Models)) // Pre-size map
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	
@@ -167,6 +172,14 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 			modelElapsedTime := time.Since(modelStartTime).Milliseconds()
 			
 			if err != nil {
+				// Prepare common part of error response
+				errorResponse := models.QueryResponse{
+					Model:        model,
+					ResponseTime: modelElapsedTime,
+					Timestamp:    time.Now(),
+					RequestID:    requestID,
+				}
+
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					logrus.WithFields(logrus.Fields{
 						"model":      string(model),
@@ -174,17 +187,8 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 						"request_id": requestID,
 					}).Warn("Request timeout or canceled")
 					
-					mu.Lock()
-					responses[string(model)] = models.QueryResponse{
-						Model:        model,
-						Response:     "Error: Request timed out or was canceled",
-						ResponseTime: modelElapsedTime,
-						Timestamp:    time.Now(),
-						RequestID:    requestID,
-						Error:        "timeout",
-					}
-					mu.Unlock()
-					
+					errorResponse.Response = "Error: Request timed out or was canceled"
+					errorResponse.Error = "timeout"
 					metrics.RecordError("timeout")
 				} else {
 					logrus.WithFields(logrus.Fields{
@@ -193,19 +197,14 @@ func (h *Handler) ParallelQueryHandler(w http.ResponseWriter, r *http.Request) {
 						"request_id": requestID,
 					}).Error("Error querying LLM")
 					
-					mu.Lock()
-					responses[string(model)] = models.QueryResponse{
-						Model:        model,
-						Response:     "Error: " + err.Error(),
-						ResponseTime: modelElapsedTime,
-						Timestamp:    time.Now(),
-						RequestID:    requestID,
-						Error:        err.Error(),
-					}
-					mu.Unlock()
-					
+					errorResponse.Response = "Error: " + err.Error()
+					errorResponse.Error = err.Error()
 					metrics.RecordError("query_error")
 				}
+
+				mu.Lock()
+				responses[string(model)] = errorResponse
+				mu.Unlock()
 				return
 			}
 			

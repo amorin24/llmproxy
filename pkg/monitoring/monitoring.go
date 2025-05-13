@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const maxDurations = 100
+
 type Metrics struct {
 	RequestsTotal      map[string]int            `json:"requests_total"`
 	RequestDurations   map[string][]time.Duration `json:"request_durations"`
@@ -18,6 +20,9 @@ type Metrics struct {
 	ActiveRequests     map[string]int            `json:"active_requests"`
 	ModelAvailability  map[string]bool           `json:"model_availability"`
 	ErrorsTotal        map[string]int            `json:"errors_total"`
+	// Track sum and count for efficient average calculation
+	durationSums       map[string]time.Duration
+	durationCounts     map[string]int
 	mutex              sync.RWMutex
 }
 
@@ -29,12 +34,14 @@ var (
 func GetMetrics() *Metrics {
 	metricsOnce.Do(func() {
 		metrics = &Metrics{
-			RequestsTotal:     make(map[string]int),
-			RequestDurations:  make(map[string][]time.Duration),
-			TokensProcessed:   make(map[string]int),
-			ActiveRequests:    make(map[string]int),
-			ModelAvailability: make(map[string]bool),
-			ErrorsTotal:       make(map[string]int),
+			RequestsTotal:     make(map[string]int, 20),
+			RequestDurations:  make(map[string][]time.Duration, 10),
+			TokensProcessed:   make(map[string]int, 10),
+			ActiveRequests:    make(map[string]int, 10),
+			ModelAvailability: make(map[string]bool, 10),
+			ErrorsTotal:       make(map[string]int, 10),
+			durationSums:      make(map[string]time.Duration, 10),
+			durationCounts:    make(map[string]int, 10),
 		}
 	})
 	return metrics
@@ -48,12 +55,20 @@ func (m *Metrics) RecordRequest(model string, status int, duration time.Duration
 	m.RequestsTotal[key]++
 	
 	if _, ok := m.RequestDurations[model]; !ok {
-		m.RequestDurations[model] = []time.Duration{}
+		m.RequestDurations[model] = make([]time.Duration, 0, maxDurations)
 	}
-	m.RequestDurations[model] = append(m.RequestDurations[model], duration)
 	
-	if len(m.RequestDurations[model]) > 100 {
-		m.RequestDurations[model] = m.RequestDurations[model][len(m.RequestDurations[model])-100:]
+	// Update running sums and counts
+	m.durationSums[model] += duration
+	m.durationCounts[model]++
+	
+	// Maintain only last 100 durations for historical purposes
+	if len(m.RequestDurations[model]) >= maxDurations {
+		// Remove oldest and add newest (more efficient than append+slice)
+		copy(m.RequestDurations[model], m.RequestDurations[model][1:])
+		m.RequestDurations[model][maxDurations-1] = duration
+	} else {
+		m.RequestDurations[model] = append(m.RequestDurations[model], duration)
 	}
 }
 
@@ -112,18 +127,14 @@ func (m *Metrics) GetMetricsData() map[string]interface{} {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	
-	avgDurations := make(map[string]float64)
-	for model, durations := range m.RequestDurations {
-		if len(durations) == 0 {
+	avgDurations := make(map[string]float64, len(m.durationCounts))
+	for model, count := range m.durationCounts {
+		if count == 0 {
 			avgDurations[model] = 0
 			continue
 		}
 		
-		var sum time.Duration
-		for _, d := range durations {
-			sum += d
-		}
-		avgDurations[model] = float64(sum) / float64(len(durations)) / float64(time.Millisecond)
+		avgDurations[model] = float64(m.durationSums[model]) / float64(count) / float64(time.Millisecond)
 	}
 	
 	return map[string]interface{}{
