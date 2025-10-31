@@ -57,6 +57,47 @@ var (
 		},
 		[]string{"model"},
 	)
+
+	CostTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "llmproxy_cost_usd_total",
+			Help: "The total cost in USD by provider and model",
+		},
+		[]string{"provider", "model"},
+	)
+
+	CostPerRequest = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "llmproxy_cost_per_request_usd",
+			Help:    "The cost per request in USD by provider and model",
+			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 15), // $0.0001 to ~$1.64
+		},
+		[]string{"provider", "model"},
+	)
+
+	TokenCostTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "llmproxy_token_cost_usd_total",
+			Help: "The total token cost in USD by provider, model, and token type",
+		},
+		[]string{"provider", "model", "token_type"},
+	)
+
+	CostSavingsFromCache = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "llmproxy_cost_savings_from_cache_usd_total",
+			Help: "The total cost savings in USD from cache hits",
+		},
+	)
+
+	EstimatedVsActualCost = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "llmproxy_estimated_vs_actual_cost_ratio",
+			Help:    "The ratio of estimated cost to actual cost",
+			Buckets: prometheus.LinearBuckets(0.5, 0.1, 11), // 0.5 to 1.5
+		},
+		[]string{"provider", "model"},
+	)
 )
 
 func RecordRequest(model string, status int, duration time.Duration) {
@@ -91,4 +132,24 @@ func SetModelAvailability(model string, available bool) {
 		value = 1.0
 	}
 	ModelAvailability.WithLabelValues(model).Set(value)
+}
+
+func RecordCost(provider string, model string, costUSD float64) {
+	CostTotal.WithLabelValues(provider, model).Add(costUSD)
+	CostPerRequest.WithLabelValues(provider, model).Observe(costUSD)
+}
+
+func RecordTokenCost(provider string, model string, tokenType string, costUSD float64) {
+	TokenCostTotal.WithLabelValues(provider, model, tokenType).Add(costUSD)
+}
+
+func RecordCostSavingsFromCache(costUSD float64) {
+	CostSavingsFromCache.Add(costUSD)
+}
+
+func RecordEstimatedVsActualCost(provider string, model string, estimatedCost float64, actualCost float64) {
+	if estimatedCost > 0 {
+		ratio := actualCost / estimatedCost
+		EstimatedVsActualCost.WithLabelValues(provider, model).Observe(ratio)
+	}
 }

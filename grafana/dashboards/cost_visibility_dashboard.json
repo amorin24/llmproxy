@@ -1,0 +1,99 @@
+{
+  "dashboard": {
+    "title": "LLM Gateway - Cost Visibility",
+    "tags": ["llmproxy", "cost", "phase1"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Cost by Provider",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (provider) (rate(llmproxy_cost_usd_total[5m]))",
+            "legendFormat": "{{provider}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Total Cost by Model",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (model) (rate(llmproxy_cost_usd_total[5m]))",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Cost Per Request Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(llmproxy_cost_per_request_usd_bucket[5m])"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Cost Savings from Cache",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "llmproxy_cost_savings_from_cache_usd_total"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Token Cost by Type",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (token_type) (rate(llmproxy_token_cost_usd_total[5m]))",
+            "legendFormat": "{{token_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Estimated vs Actual Cost Accuracy",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(llmproxy_estimated_vs_actual_cost_ratio_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(llmproxy_estimated_vs_actual_cost_ratio_bucket[5m]))",
+            "legendFormat": "p95"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Cumulative Cost Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(llmproxy_cost_usd_total)"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}

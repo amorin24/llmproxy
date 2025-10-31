@@ -7,13 +7,21 @@ import (
 
 	"github.com/amorin24/llmproxy/pkg/context"
 	"github.com/amorin24/llmproxy/pkg/models"
+	"github.com/amorin24/llmproxy/pkg/pricing"
+	"github.com/amorin24/llmproxy/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type GatewayHandler struct {
+	catalogLoader *pricing.CatalogLoader
+	costEstimator *pricing.CostEstimator
 }
 
-func NewGatewayHandler() *GatewayHandler {
-	return &GatewayHandler{}
+func NewGatewayHandler(catalogLoader *pricing.CatalogLoader) *GatewayHandler {
+	return &GatewayHandler{
+		catalogLoader: catalogLoader,
+		costEstimator: pricing.NewCostEstimator(catalogLoader),
+	}
 }
 
 func (h *GatewayHandler) QueryHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,15 +93,48 @@ func (h *GatewayHandler) CostEstimateHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	ctx, span := tracing.StartSpan(r.Context(), "gateway.cost_estimate",
+		attribute.String("provider", pricing.MapModelTypeToProvider(req.Model)),
+		attribute.String("model_version", req.ModelVersion),
+	)
+	defer span.End()
+
+	provider := pricing.MapModelTypeToProvider(req.Model)
+	modelVersion := req.ModelVersion
+	if modelVersion == "" {
+		modelVersion = pricing.GetDefaultModelVersion(req.Model)
+	}
+
+	inputTokens := pricing.EstimateTokenCount(req.Query)
+	expectedOutputTokens := 100
+	if req.ExpectedResponseTokens != nil {
+		expectedOutputTokens = *req.ExpectedResponseTokens
+	}
+
+	estimate, err := h.costEstimator.EstimatePreCall(provider, modelVersion, inputTokens, expectedOutputTokens)
+	if err != nil {
+		tracing.RecordError(span, err)
+		sendErrorResponse(w, http.StatusBadRequest, "Failed to estimate cost: "+err.Error(), "ESTIMATION_FAILED", "")
+		return
+	}
+
 	response := CostEstimateResponse{
 		Model:               req.Model,
-		ModelVersion:        req.ModelVersion,
-		InputTokens:         100,
-		OutputTokens:        50,
-		EstimatedCostUSD:    0.001,
-		PricePerInputToken:  0.01,
-		PricePerOutputToken: 0.03,
+		ModelVersion:        modelVersion,
+		InputTokens:         estimate.InputTokens,
+		OutputTokens:        estimate.OutputTokens,
+		EstimatedCostUSD:    estimate.EstimatedCostUSD,
+		PricePerInputToken:  estimate.PricePerInputToken,
+		PricePerOutputToken: estimate.PricePerOutputToken,
 	}
+
+	tracing.AddSpanAttributes(span,
+		attribute.Int("input_tokens", estimate.InputTokens),
+		attribute.Int("output_tokens", estimate.OutputTokens),
+		attribute.Float64("estimated_cost_usd", estimate.EstimatedCostUSD),
+	)
+
+	_ = ctx
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
