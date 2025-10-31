@@ -551,7 +551,7 @@ func handleError(w http.ResponseWriter, message string, statusCode int) {
 }
 
 func getEnvAsInt(key string, defaultValue int) int {
-	valueStr := strings.TrimSpace(strings.ToLower(key))
+	valueStr := strings.TrimSpace(os.Getenv(key))
 	if valueStr == "" {
 		return defaultValue
 	}
