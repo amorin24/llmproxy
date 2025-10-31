@@ -8,10 +8,12 @@ import (
 )
 
 const (
-	DefaultOpenAIVersion  = "gpt-3.5-turbo"
-	DefaultGeminiVersion  = "gemini-2.0-flash"
-	DefaultMistralVersion = "mistral-medium-latest"
-	DefaultClaudeVersion  = "claude-3-sonnet-20240229"
+	DefaultOpenAIVersion   = "gpt-3.5-turbo"
+	DefaultGeminiVersion   = "gemini-2.0-flash"
+	DefaultMistralVersion  = "mistral-medium-latest"
+	DefaultClaudeVersion   = "claude-3-sonnet-20240229"
+	DefaultVertexAIVersion = "gemini-2.0-flash"
+	DefaultBedrockVersion  = "claude-3-haiku-20240307"
 )
 
 var SupportedModelVersions = map[models.ModelType][]string{
@@ -46,6 +48,19 @@ var SupportedModelVersions = map[models.ModelType][]string{
 		"claude-3-sonnet-20240229",
 		"claude-3-opus-20240229",
 	},
+	models.VertexAI: {
+		"gemini-2.0-flash",
+		"gemini-2.0-flash-lite",
+		"gemini-1.5-flash",
+		"gemini-1.5-pro",
+	},
+	models.Bedrock: {
+		"claude-3-haiku-20240307",
+		"claude-3-sonnet-20240229",
+		"claude-3-opus-20240229",
+		"amazon.titan-text-express-v1",
+		"meta.llama3-70b-instruct-v1",
+	},
 }
 
 func ValidateModelVersion(modelType models.ModelType, version string) string {
@@ -59,6 +74,10 @@ func ValidateModelVersion(modelType models.ModelType, version string) string {
 			return DefaultMistralVersion
 		case models.Claude:
 			return DefaultClaudeVersion
+		case models.VertexAI:
+			return DefaultVertexAIVersion
+		case models.Bedrock:
+			return DefaultBedrockVersion
 		}
 	}
 
@@ -99,6 +118,10 @@ var Factory = func(modelType models.ModelType) (Client, error) {
 		return NewMistralClient(), nil
 	case models.Claude:
 		return NewClaudeClient(), nil
+	case models.VertexAI:
+		return NewVertexAIClient(), nil
+	case models.Bedrock:
+		return NewBedrockClient(), nil
 	default:
 		return nil, myerrors.NewModelError(string(modelType), 400, myerrors.ErrUnavailable, false)
 	}
