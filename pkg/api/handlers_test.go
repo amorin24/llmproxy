@@ -709,3 +709,62 @@ func TestHealthHandler(t *testing.T) {
 		}
 	})
 }
+
+func TestGetEnvAsInt(t *testing.T) {
+	t.Run("Returns default when env var not set", func(t *testing.T) {
+		result := getEnvAsInt("NONEXISTENT_VAR", 42)
+		if result != 42 {
+			t.Errorf("Expected default value 42, got %d", result)
+		}
+	})
+	
+	t.Run("Returns parsed value when env var is set", func(t *testing.T) {
+		os.Setenv("TEST_INT_VAR", "100")
+		defer os.Unsetenv("TEST_INT_VAR")
+		
+		result := getEnvAsInt("TEST_INT_VAR", 42)
+		if result != 100 {
+			t.Errorf("Expected parsed value 100, got %d", result)
+		}
+	})
+	
+	t.Run("Returns default when env var is empty string", func(t *testing.T) {
+		os.Setenv("TEST_EMPTY_VAR", "")
+		defer os.Unsetenv("TEST_EMPTY_VAR")
+		
+		result := getEnvAsInt("TEST_EMPTY_VAR", 42)
+		if result != 42 {
+			t.Errorf("Expected default value 42, got %d", result)
+		}
+	})
+	
+	t.Run("Returns default when env var is not a valid integer", func(t *testing.T) {
+		os.Setenv("TEST_INVALID_VAR", "not_a_number")
+		defer os.Unsetenv("TEST_INVALID_VAR")
+		
+		result := getEnvAsInt("TEST_INVALID_VAR", 42)
+		if result != 42 {
+			t.Errorf("Expected default value 42, got %d", result)
+		}
+	})
+	
+	t.Run("Handles whitespace in env var", func(t *testing.T) {
+		os.Setenv("TEST_WHITESPACE_VAR", "  100  ")
+		defer os.Unsetenv("TEST_WHITESPACE_VAR")
+		
+		result := getEnvAsInt("TEST_WHITESPACE_VAR", 42)
+		if result != 100 {
+			t.Errorf("Expected parsed value 100, got %d", result)
+		}
+	})
+	
+	t.Run("Handles negative numbers", func(t *testing.T) {
+		os.Setenv("TEST_NEGATIVE_VAR", "-50")
+		defer os.Unsetenv("TEST_NEGATIVE_VAR")
+		
+		result := getEnvAsInt("TEST_NEGATIVE_VAR", 42)
+		if result != -50 {
+			t.Errorf("Expected parsed value -50, got %d", result)
+		}
+	})
+}

@@ -1,6 +1,6 @@
-# LLM Proxy System
+# LLM Gateway System
 
-A Go-based proxy system for routing requests to multiple Large Language Models (LLMs) including OpenAI, Gemini, Mistral, and Claude.
+A Go-based gateway system for routing requests to multiple Large Language Models (LLMs) including OpenAI, Gemini, Mistral, and Claude. The gateway provides advanced features including cost visibility, observability, and developer-friendly APIs.
 
 ## Features
 
@@ -31,7 +31,7 @@ A Go-based proxy system for routing requests to multiple Large Language Models (
 
 ## Prerequisites
 
-- Go 1.21 or higher
+- Go 1.25 or higher
 - Docker and Docker Compose (for containerized deployment)
 
 ## Configuration
@@ -78,6 +78,8 @@ docker-compose up --build
 
 ## API Endpoints
 
+### Legacy API (v0)
+
 - `POST /api/query`: Send a query to an LLM
   - Request body:
     ```json
@@ -90,6 +92,35 @@ docker-compose up --build
     ```
 
 - `GET /api/status`: Check the status of all LLM providers
+
+### Gateway API (v1) - New!
+
+- `POST /v1/gateway/query`: Send a query through the gateway with enhanced features
+  - Request body:
+    ```json
+    {
+      "query": "Your query text",
+      "model": "openai|gemini|mistral|claude",
+      "model_version": "gpt-4o", // Optional
+      "task_type": "text_generation|summarization|sentiment_analysis|question_answering",
+      "max_cost_usd": 0.10, // Optional cost limit
+      "dry_run": false, // Optional: estimate cost without executing
+      "tenant": "internal", // Optional tenant identifier
+      "request_id": "optional-request-id" // Optional
+    }
+    ```
+  - Response includes cost estimation and detailed metrics
+
+- `POST /v1/gateway/cost-estimate`: Estimate the cost of a query before execution
+  - Request body:
+    ```json
+    {
+      "query": "Your query text",
+      "model": "openai",
+      "model_version": "gpt-4o", // Optional
+      "expected_response_tokens": 100 // Optional
+    }
+    ```
 
 ## Web UI
 

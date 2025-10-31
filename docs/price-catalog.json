@@ -1,0 +1,178 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-10-31T17:00:00Z",
+  "currency": "USD",
+  "note": "Prices are per 1,000 tokens unless otherwise specified. Update this file when provider pricing changes.",
+  "providers": {
+    "openai": {
+      "gpt-4o": {
+        "input_per_1k_tokens": 0.005,
+        "output_per_1k_tokens": 0.015,
+        "notes": "GPT-4 Optimized model"
+      },
+      "gpt-4-turbo": {
+        "input_per_1k_tokens": 0.01,
+        "output_per_1k_tokens": 0.03,
+        "notes": "GPT-4 Turbo"
+      },
+      "gpt-4": {
+        "input_per_1k_tokens": 0.03,
+        "output_per_1k_tokens": 0.06,
+        "notes": "GPT-4 base model"
+      },
+      "gpt-3.5-turbo": {
+        "input_per_1k_tokens": 0.0005,
+        "output_per_1k_tokens": 0.0015,
+        "notes": "GPT-3.5 Turbo"
+      },
+      "o3": {
+        "input_per_1k_tokens": 0.015,
+        "output_per_1k_tokens": 0.06,
+        "notes": "O3 reasoning model"
+      },
+      "o4-mini": {
+        "input_per_1k_tokens": 0.003,
+        "output_per_1k_tokens": 0.012,
+        "notes": "O4 Mini reasoning model"
+      }
+    },
+    "gemini": {
+      "gemini-2.5-flash-preview-04-17": {
+        "input_per_1k_tokens": 0.0001,
+        "output_per_1k_tokens": 0.0003,
+        "notes": "Gemini 2.5 Flash Preview (via Google AI)"
+      },
+      "gemini-2.5-pro-preview-03-25": {
+        "input_per_1k_tokens": 0.00125,
+        "output_per_1k_tokens": 0.005,
+        "notes": "Gemini 2.5 Pro Preview (via Google AI)"
+      },
+      "gemini-2.0-flash": {
+        "input_per_1k_tokens": 0.0001,
+        "output_per_1k_tokens": 0.0003,
+        "notes": "Gemini 2.0 Flash (via Google AI)"
+      },
+      "gemini-2.0-flash-lite": {
+        "input_per_1k_tokens": 0.00005,
+        "output_per_1k_tokens": 0.00015,
+        "notes": "Gemini 2.0 Flash Lite (via Google AI)"
+      },
+      "gemini-1.5-flash": {
+        "input_per_1k_tokens": 0.000075,
+        "output_per_1k_tokens": 0.0003,
+        "notes": "Gemini 1.5 Flash (via Google AI)"
+      },
+      "gemini-1.5-flash-8b": {
+        "input_per_1k_tokens": 0.0000375,
+        "output_per_1k_tokens": 0.00015,
+        "notes": "Gemini 1.5 Flash 8B (via Google AI)"
+      },
+      "gemini-1.5-pro": {
+        "input_per_1k_tokens": 0.00125,
+        "output_per_1k_tokens": 0.005,
+        "notes": "Gemini 1.5 Pro (via Google AI)"
+      }
+    },
+    "mistral": {
+      "mistral-small-latest": {
+        "input_per_1k_tokens": 0.0002,
+        "output_per_1k_tokens": 0.0006,
+        "notes": "Mistral Small"
+      },
+      "mistral-medium-latest": {
+        "input_per_1k_tokens": 0.0027,
+        "output_per_1k_tokens": 0.0081,
+        "notes": "Mistral Medium"
+      },
+      "mistral-large-latest": {
+        "input_per_1k_tokens": 0.004,
+        "output_per_1k_tokens": 0.012,
+        "notes": "Mistral Large"
+      },
+      "codestral-latest": {
+        "input_per_1k_tokens": 0.0003,
+        "output_per_1k_tokens": 0.0009,
+        "notes": "Codestral for code generation"
+      }
+    },
+    "claude": {
+      "claude-3-haiku-20240307": {
+        "input_per_1k_tokens": 0.00025,
+        "output_per_1k_tokens": 0.00125,
+        "notes": "Claude 3 Haiku"
+      },
+      "claude-3-sonnet-20240229": {
+        "input_per_1k_tokens": 0.003,
+        "output_per_1k_tokens": 0.015,
+        "notes": "Claude 3 Sonnet"
+      },
+      "claude-3-opus-20240229": {
+        "input_per_1k_tokens": 0.015,
+        "output_per_1k_tokens": 0.075,
+        "notes": "Claude 3 Opus"
+      }
+    },
+    "vertex_ai": {
+      "gemini-2.0-flash": {
+        "input_per_1k_tokens": 0.00025,
+        "output_per_1k_tokens": 0.00075,
+        "notes": "Gemini 2.0 Flash via Vertex AI (us-central1)"
+      },
+      "gemini-2.0-flash-lite": {
+        "input_per_1k_tokens": 0.000125,
+        "output_per_1k_tokens": 0.000375,
+        "notes": "Gemini 2.0 Flash Lite via Vertex AI (us-central1)"
+      },
+      "gemini-1.5-flash": {
+        "input_per_1k_tokens": 0.0001875,
+        "output_per_1k_tokens": 0.00075,
+        "notes": "Gemini 1.5 Flash via Vertex AI (us-central1)"
+      },
+      "gemini-1.5-pro": {
+        "input_per_1k_tokens": 0.003125,
+        "output_per_1k_tokens": 0.0125,
+        "notes": "Gemini 1.5 Pro via Vertex AI (us-central1)"
+      }
+    },
+    "bedrock": {
+      "claude-3-haiku-20240307": {
+        "input_per_1k_tokens": 0.00025,
+        "output_per_1k_tokens": 0.00125,
+        "notes": "Claude 3 Haiku via Bedrock (us-east-1)"
+      },
+      "claude-3-sonnet-20240229": {
+        "input_per_1k_tokens": 0.003,
+        "output_per_1k_tokens": 0.015,
+        "notes": "Claude 3 Sonnet via Bedrock (us-east-1)"
+      },
+      "claude-3-opus-20240229": {
+        "input_per_1k_tokens": 0.015,
+        "output_per_1k_tokens": 0.075,
+        "notes": "Claude 3 Opus via Bedrock (us-east-1)"
+      },
+      "amazon.titan-text-express-v1": {
+        "input_per_1k_tokens": 0.0002,
+        "output_per_1k_tokens": 0.0006,
+        "notes": "Amazon Titan Text Express"
+      },
+      "meta.llama3-70b-instruct-v1": {
+        "input_per_1k_tokens": 0.00099,
+        "output_per_1k_tokens": 0.00099,
+        "notes": "Llama 3 70B Instruct via Bedrock"
+      }
+    }
+  },
+  "pricing_sources": {
+    "openai": "https://openai.com/api/pricing/",
+    "gemini": "https://ai.google.dev/pricing",
+    "mistral": "https://mistral.ai/technology/#pricing",
+    "claude": "https://www.anthropic.com/api",
+    "vertex_ai": "https://cloud.google.com/vertex-ai/pricing",
+    "bedrock": "https://aws.amazon.com/bedrock/pricing/"
+  },
+  "update_schedule": "Monthly or when provider announces pricing changes",
+  "validation": {
+    "last_validated": "2025-10-31",
+    "next_validation_due": "2025-11-30"
+  }
+}
