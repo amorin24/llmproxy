@@ -5,10 +5,12 @@ import "time"
 type ModelType string
 
 const (
-	OpenAI  ModelType = "openai"
-	Gemini  ModelType = "gemini"
-	Mistral ModelType = "mistral"
-	Claude  ModelType = "claude"
+	OpenAI    ModelType = "openai"
+	Gemini    ModelType = "gemini"
+	Mistral   ModelType = "mistral"
+	Claude    ModelType = "claude"
+	VertexAI  ModelType = "vertex_ai"
+	Bedrock   ModelType = "bedrock"
 )
 
 type TaskType string
@@ -47,8 +49,10 @@ type QueryResponse struct {
 }
 
 type StatusResponse struct {
-	OpenAI  bool `json:"openai"`
-	Gemini  bool `json:"gemini"`
-	Mistral bool `json:"mistral"`
-	Claude  bool `json:"claude"`
+	OpenAI   bool `json:"openai"`
+	Gemini   bool `json:"gemini"`
+	Mistral  bool `json:"mistral"`
+	Claude   bool `json:"claude"`
+	VertexAI bool `json:"vertex_ai"`
+	Bedrock  bool `json:"bedrock"`
 }
