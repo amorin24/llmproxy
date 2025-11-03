@@ -63,10 +63,15 @@ func main() {
 	v1Router := r.PathPrefix("/v1/gateway").Subrouter()
 	v1.SetupV1Routes(v1Router, routerInstance, catalogLoader, jobStore, jobWorker)
 
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./ui"))))
+	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/dist/assets"))))
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join("ui", "templates", "index.html"))
+	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join("frontend", "dist", r.URL.Path)
+		if _, err := os.Stat(path); err == nil {
+			http.ServeFile(w, r, path)
+			return
+		}
+		http.ServeFile(w, r, filepath.Join("frontend", "dist", "index.html"))
 	})
 
 	port := cfg.Port
