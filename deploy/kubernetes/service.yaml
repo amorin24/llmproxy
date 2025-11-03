@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llmgateway
+  namespace: llmproxy
+  labels:
+    app: llmgateway
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/api/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: llmgateway
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llmgateway-headless
+  namespace: llmproxy
+  labels:
+    app: llmgateway
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: llmgateway
