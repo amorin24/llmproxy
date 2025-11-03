@@ -77,7 +77,7 @@ func (r *Router) UpdateAvailability() {
 	}
 	
 	logrus.Debug("Updating model availability")
-	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude}
+	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude, models.VertexAI, models.Bedrock}
 	
 	for _, modelType := range modelTypes {
 		client, err := llm.Factory(modelType)
@@ -113,10 +113,12 @@ func (r *Router) GetAvailability() models.StatusResponse {
 	defer r.availabilityMutex.RUnlock()
 	
 	return models.StatusResponse{
-		OpenAI:  r.availableModels[models.OpenAI],
-		Gemini:  r.availableModels[models.Gemini],
-		Mistral: r.availableModels[models.Mistral],
-		Claude:  r.availableModels[models.Claude],
+		OpenAI:   r.availableModels[models.OpenAI],
+		Gemini:   r.availableModels[models.Gemini],
+		Mistral:  r.availableModels[models.Mistral],
+		Claude:   r.availableModels[models.Claude],
+		VertexAI: r.availableModels[models.VertexAI],
+		Bedrock:  r.availableModels[models.Bedrock],
 	}
 }
 
@@ -237,7 +239,7 @@ func (r *Router) getRandomAvailableModel() (models.ModelType, error) {
 	defer r.availabilityMutex.RUnlock()
 	
 	var availableModelTypes []models.ModelType
-	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude}
+	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude, models.VertexAI, models.Bedrock}
 
 	for _, modelType := range modelTypes {
 		if r.availableModels[modelType] {
@@ -263,7 +265,7 @@ func (r *Router) getAvailableModelsExcept(excludeModel models.ModelType) []model
 	defer r.availabilityMutex.RUnlock()
 	
 	var availableModelTypes []models.ModelType
-	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude}
+	modelTypes := []models.ModelType{models.OpenAI, models.Gemini, models.Mistral, models.Claude, models.VertexAI, models.Bedrock}
 
 	for _, modelType := range modelTypes {
 		if modelType != excludeModel && r.availableModels[modelType] {

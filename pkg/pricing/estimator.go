@@ -96,6 +96,10 @@ func GetDefaultModelVersion(modelType models.ModelType) string {
 		return "mistral-small-latest"
 	case models.Claude:
 		return "claude-3-haiku-20240307"
+	case models.VertexAI:
+		return "gemini-2.0-flash"
+	case models.Bedrock:
+		return "claude-3-haiku-20240307"
 	default:
 		return ""
 	}
