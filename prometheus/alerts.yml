@@ -1,0 +1,285 @@
+groups:
+  - name: llmproxy_slo_alerts
+    interval: 30s
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(llmproxy_requests_total{status="error"}[5m])
+            /
+            rate(llmproxy_requests_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: gateway
+        annotations:
+          summary: "High error rate detected for {{ $labels.provider }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for provider {{ $labels.provider }} (threshold: 5%)"
+          
+      # High Latency Alert (p95)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            rate(llmproxy_request_duration_seconds_bucket[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: gateway
+        annotations:
+          summary: "High p95 latency detected for {{ $labels.provider }}"
+          description: "p95 latency is {{ $value }}s for provider {{ $labels.provider }} (threshold: 5s)"
+          
+      # SLO Violation - Latency p95
+      - alert: SLOViolationLatencyP95
+        expr: llmproxy_slo_latency_p95_seconds > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "SLO violation: p95 latency exceeded for {{ $labels.provider }}"
+          description: "p95 latency is {{ $value }}s for provider {{ $labels.provider }} (target: 2s)"
+          
+      # SLO Violation - Latency p99
+      - alert: SLOViolationLatencyP99
+        expr: llmproxy_slo_latency_p99_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "SLO violation: p99 latency exceeded for {{ $labels.provider }}"
+          description: "p99 latency is {{ $value }}s for provider {{ $labels.provider }} (target: 5s)"
+          
+      # SLO Violation - Error Rate
+      - alert: SLOViolationErrorRate
+        expr: llmproxy_slo_error_rate > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "SLO violation: error rate exceeded for {{ $labels.provider }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for provider {{ $labels.provider }} (target: 1%)"
+          
+      # SLO Violation - Availability
+      - alert: SLOViolationAvailability
+        expr: llmproxy_slo_availability < 0.995
+        for: 5m
+        labels:
+          severity: critical
+          component: slo
+        annotations:
+          summary: "SLO violation: availability below target for {{ $labels.provider }}"
+          description: "Availability is {{ $value | humanizePercentage }} for provider {{ $labels.provider }} (target: 99.5%)"
+          
+      # Error Budget Exhausted
+      - alert: ErrorBudgetExhausted
+        expr: llmproxy_slo_error_budget_remaining <= 0
+        for: 1m
+        labels:
+          severity: critical
+          component: slo
+        annotations:
+          summary: "Error budget exhausted for {{ $labels.provider }}"
+          description: "Error budget is exhausted for provider {{ $labels.provider }}. No more errors allowed in this window."
+          
+      # Error Budget Low
+      - alert: ErrorBudgetLow
+        expr: llmproxy_slo_error_budget_remaining < 0.2
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "Error budget running low for {{ $labels.provider }}"
+          description: "Error budget is {{ $value | humanizePercentage }} remaining for provider {{ $labels.provider }}"
+
+  - name: llmproxy_cost_alerts
+    interval: 1m
+    rules:
+      # Cost Spike Alert
+      - alert: CostSpike
+        expr: |
+          llmproxy_cost_actual_usd_per_hour 
+          > 
+          (llmproxy_cost_baseline_usd_per_hour * 2)
+        for: 5m
+        labels:
+          severity: warning
+          component: cost
+        annotations:
+          summary: "Cost spike detected for {{ $labels.provider }}"
+          description: "Actual cost ({{ $value }}$/hr) is more than 2x baseline for provider {{ $labels.provider }}"
+          
+      # Cost Anomaly Alert
+      - alert: CostAnomaly
+        expr: rate(llmproxy_cost_anomalies_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: cost
+        annotations:
+          summary: "Cost anomaly detected for {{ $labels.provider }}"
+          description: "Cost anomaly detected for provider {{ $labels.provider }}"
+          
+      # High Daily Cost Alert
+      - alert: HighDailyCost
+        expr: |
+          sum by (provider) (
+            increase(llmproxy_cost_usd_total[24h])
+          ) > 100
+        for: 1h
+        labels:
+          severity: info
+          component: cost
+        annotations:
+          summary: "High daily cost for {{ $labels.provider }}"
+          description: "Daily cost is ${{ $value }} for provider {{ $labels.provider }}"
+
+  - name: llmproxy_job_alerts
+    interval: 30s
+    rules:
+      # Job Queue Backing Up
+      - alert: JobQueueBackingUp
+        expr: llmproxy_job_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: jobs
+        annotations:
+          summary: "Job queue backing up"
+          description: "Job queue depth is {{ $value }} (threshold: 100)"
+          
+      # High Job Failure Rate
+      - alert: HighJobFailureRate
+        expr: llmproxy_job_failure_rate > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          component: jobs
+        annotations:
+          summary: "High job failure rate"
+          description: "Job failure rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+          
+      # Stuck Jobs Detected
+      - alert: StuckJobsDetected
+        expr: rate(llmproxy_jobs_stuck_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: jobs
+        annotations:
+          summary: "Stuck jobs detected"
+          description: "Jobs are stuck (running > 5 minutes)"
+          
+      # No Job Workers Running
+      - alert: NoJobWorkersRunning
+        expr: llmproxy_jobs_running == 0 and llmproxy_job_queue_depth > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: jobs
+        annotations:
+          summary: "No job workers running"
+          description: "No jobs are being processed but queue has {{ $value }} pending jobs"
+
+  - name: llmproxy_provider_alerts
+    interval: 30s
+    rules:
+      # Provider Unavailable
+      - alert: ProviderUnavailable
+        expr: llmproxy_provider_available == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: provider
+        annotations:
+          summary: "Provider {{ $labels.provider }} is unavailable"
+          description: "Provider {{ $labels.provider }} has been unavailable for more than 1 minute"
+          
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: llmproxy_circuit_breaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.provider }}"
+          description: "Circuit breaker is open for provider {{ $labels.provider }}"
+          
+      # High Provider Error Rate
+      - alert: HighProviderErrorRate
+        expr: |
+          (
+            rate(llmproxy_requests_total{status="error"}[5m])
+            /
+            rate(llmproxy_requests_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: provider
+        annotations:
+          summary: "High error rate for {{ $labels.provider }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for provider {{ $labels.provider }}"
+
+  - name: llmproxy_cache_alerts
+    interval: 1m
+    rules:
+      # Low Cache Hit Rate
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            rate(llmproxy_cache_hits_total[10m])
+            /
+            (rate(llmproxy_cache_hits_total[10m]) + rate(llmproxy_cache_misses_total[10m]))
+          ) < 0.1
+        for: 10m
+        labels:
+          severity: info
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (expected: >10%)"
+          
+      # Cache Savings Low
+      - alert: CacheSavingsLow
+        expr: |
+          increase(llmproxy_cost_savings_from_cache_usd_total[1h]) < 0.1
+        for: 1h
+        labels:
+          severity: info
+          component: cache
+        annotations:
+          summary: "Low cache savings"
+          description: "Cache savings in last hour: ${{ $value }}"
+
+  - name: llmproxy_system_alerts
+    interval: 30s
+    rules:
+      # High Request Rate
+      - alert: HighRequestRate
+        expr: rate(llmproxy_requests_total[1m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+          component: system
+        annotations:
+          summary: "High request rate"
+          description: "Request rate is {{ $value }} req/s"
+          
+      # Gateway Restart
+      - alert: GatewayRestart
+        expr: time() - process_start_time_seconds < 300
+        for: 1m
+        labels:
+          severity: info
+          component: system
+        annotations:
+          summary: "Gateway recently restarted"
+          description: "Gateway restarted {{ $value }}s ago"
