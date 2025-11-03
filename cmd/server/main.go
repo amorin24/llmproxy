@@ -8,8 +8,14 @@ import (
 
 	"github.com/amorin24/llmproxy/pkg/api"
 	"github.com/amorin24/llmproxy/pkg/config"
+	v1 "github.com/amorin24/llmproxy/pkg/gateway/v1"
+	"github.com/amorin24/llmproxy/pkg/jobs"
+	"github.com/amorin24/llmproxy/pkg/llm"
 	"github.com/amorin24/llmproxy/pkg/logging"
+	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/amorin24/llmproxy/pkg/monitoring"
+	"github.com/amorin24/llmproxy/pkg/pricing"
+	"github.com/amorin24/llmproxy/pkg/router"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -20,6 +26,25 @@ func main() {
 	cfg := config.GetConfig()
 
 	monitoring.InitMonitoring()
+
+	mockMode := os.Getenv("MOCK_MODE") == "true"
+	if mockMode {
+		logrus.Info("Running in MOCK_MODE - using mock providers")
+		llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
+			return llm.NewMockClient(modelType)
+		}
+	}
+
+	catalogLoader := pricing.NewCatalogLoader("docs/price-catalog.json")
+	if err := catalogLoader.Load(); err != nil {
+		logrus.WithError(err).Warn("Failed to load price catalog, cost tracking may be inaccurate")
+	}
+
+	routerInstance := router.NewRouter()
+
+	jobStore := jobs.NewJobStore()
+	jobWorker := jobs.NewJobWorker(jobStore, routerInstance)
+	jobWorker.Start()
 
 	r := mux.NewRouter()
 
@@ -34,6 +59,9 @@ func main() {
 	r.HandleFunc("/api/download", handler.DownloadHandler).Methods("POST")
 	r.HandleFunc("/api/health", handler.HealthHandler).Methods("GET")
 	r.HandleFunc("/api/metrics", monitoring.MetricsHandler).Methods("GET")
+
+	v1Router := r.PathPrefix("/v1/gateway").Subrouter()
+	v1.SetupV1Routes(v1Router, routerInstance, catalogLoader, jobStore, jobWorker)
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./ui"))))
 
