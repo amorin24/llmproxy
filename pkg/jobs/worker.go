@@ -95,7 +95,7 @@ func (w *JobWorker) processJob(jobID string) {
 	
 	req := models.QueryRequest{
 		Query:        job.Query,
-		Model:        job.Model,
+		Model:        models.ModelType(job.Model),
 		ModelVersion: job.ModelVersion,
 		RequestID:    job.RequestID,
 	}

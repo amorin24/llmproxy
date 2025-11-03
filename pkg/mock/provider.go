@@ -9,6 +9,12 @@ import (
 	"github.com/amorin24/llmproxy/pkg/models"
 )
 
+type MockResult struct {
+	Response     string
+	InputTokens  int
+	OutputTokens int
+}
+
 type Provider struct {
 	name              string
 	deterministicMode bool
@@ -36,7 +42,7 @@ func (p *Provider) WithFailureRate(rate float64) *Provider {
 	return p
 }
 
-func (p *Provider) Query(ctx context.Context, query string, modelVersion string) (*models.QueryResult, error) {
+func (p *Provider) Query(ctx context.Context, query string, modelVersion string) (*MockResult, error) {
 	p.requestCount++
 	
 	time.Sleep(time.Duration(p.latencyMs) * time.Millisecond)
@@ -55,7 +61,7 @@ func (p *Provider) Query(ctx context.Context, query string, modelVersion string)
 	inputTokens := len(strings.Fields(query))
 	outputTokens := len(strings.Fields(response))
 	
-	return &models.QueryResult{
+	return &MockResult{
 		Response:     response,
 		InputTokens:  inputTokens,
 		OutputTokens: outputTokens,

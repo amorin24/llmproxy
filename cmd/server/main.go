@@ -35,15 +35,15 @@ func main() {
 		}
 	}
 
-	catalogLoader := pricing.NewCatalogLoader("docs/price-catalog.json")
-	if err := catalogLoader.Load(); err != nil {
+	catalogLoader, err := pricing.NewCatalogLoader("docs/price-catalog.json")
+	if err != nil {
 		logrus.WithError(err).Warn("Failed to load price catalog, cost tracking may be inaccurate")
 	}
 
 	routerInstance := router.NewRouter()
 
-	jobStore := jobs.NewJobStore()
-	jobWorker := jobs.NewJobWorker(jobStore, routerInstance)
+	jobStore := jobs.NewJobStore(1 * time.Hour)
+	jobWorker := jobs.NewJobWorker(jobStore, routerInstance, catalogLoader, 10)
 	jobWorker.Start()
 
 	r := mux.NewRouter()

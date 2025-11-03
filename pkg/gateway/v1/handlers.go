@@ -2,11 +2,11 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/amorin24/llmproxy/pkg/context"
-	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/amorin24/llmproxy/pkg/pricing"
 	"github.com/amorin24/llmproxy/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -142,19 +142,19 @@ func (h *GatewayHandler) CostEstimateHandler(w http.ResponseWriter, r *http.Requ
 
 func validateGatewayQueryRequest(req GatewayQueryRequest) error {
 	if strings.TrimSpace(req.Query) == "" {
-		return models.ErrEmptyQuery
+		return fmt.Errorf("query cannot be empty")
 	}
 
 	if len(req.Query) > 100000 {
-		return models.ErrQueryTooLong
+		return fmt.Errorf("query exceeds maximum length of 100000 characters")
 	}
 
 	if req.Model == "" {
-		return models.ErrInvalidModel
+		return fmt.Errorf("model is required")
 	}
 
 	if req.TaskType == "" {
-		return models.ErrInvalidTaskType
+		return fmt.Errorf("task_type is required")
 	}
 
 	return nil

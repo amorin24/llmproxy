@@ -18,7 +18,7 @@ const (
 type Job struct {
 	ID                string
 	Query             string
-	Model             models.ModelType
+	Model             string
 	ModelVersion      string
 	Status            JobStatus
 	EstimatedCostUSD  float64
