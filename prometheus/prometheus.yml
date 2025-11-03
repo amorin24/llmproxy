@@ -1,12 +1,25 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'llm-gateway-local'
+    environment: 'development'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/alerts.yml
 
 scrape_configs:
   - job_name: 'llmproxy'
     metrics_path: '/api/metrics'
     static_configs:
       - targets: ['llmproxy:8080']
+    scrape_interval: 10s
     
   - job_name: 'prometheus'
     static_configs:

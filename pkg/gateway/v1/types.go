@@ -68,6 +68,24 @@ type CostEstimateResponse struct {
 	PricePerOutputToken float64 `json:"price_per_output_token"`
 }
 
+type DryRunResponse struct {
+	Valid bool `json:"valid"`
+	
+	EstimatedCostUSD float64 `json:"estimated_cost_usd"`
+	
+	InputTokens int `json:"input_tokens"`
+	
+	OutputTokens int `json:"output_tokens"`
+	
+	Provider models.ModelType `json:"provider"`
+	
+	ModelVersion string `json:"model_version"`
+	
+	WithinBudget bool `json:"within_budget"`
+	
+	Errors []string `json:"errors,omitempty"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 	

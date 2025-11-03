@@ -2,7 +2,6 @@ package streaming
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
