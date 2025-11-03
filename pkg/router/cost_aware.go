@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/amorin24/llmproxy/pkg/pricing"
@@ -119,7 +118,16 @@ func (r *CostAwareRouter) SelectProvider(ctx context.Context, req models.QueryRe
 	availability := r.router.GetAvailability()
 	availableProviders := []models.ModelType{}
 
-	for provider, available := range availability {
+	providerMap := map[string]bool{
+		"openai":    availability.OpenAI,
+		"gemini":    availability.Gemini,
+		"mistral":   availability.Mistral,
+		"claude":    availability.Claude,
+		"vertex_ai": availability.VertexAI,
+		"bedrock":   availability.Bedrock,
+	}
+
+	for provider, available := range providerMap {
 		if available {
 			modelType := stringToModelType(provider)
 			if modelType != "" {

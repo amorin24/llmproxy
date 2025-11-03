@@ -195,15 +195,16 @@ func (hc *HealthChecker) GetStatus() map[string]CheckStatus {
 	status := make(map[string]CheckStatus)
 	for name, check := range hc.checks {
 		check.mu.RLock()
-		status[name] = CheckStatus{
+		checkStatus := CheckStatus{
 			Name:      check.Name,
 			Type:      check.Type,
 			Healthy:   check.LastStatus,
 			LastCheck: check.LastCheck,
 		}
 		if check.LastError != nil {
-			status[name].Error = check.LastError.Error()
+			checkStatus.Error = check.LastError.Error()
 		}
+		status[name] = checkStatus
 		check.mu.RUnlock()
 	}
 

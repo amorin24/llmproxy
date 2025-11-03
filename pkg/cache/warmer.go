@@ -239,7 +239,7 @@ func (w *CacheWarmer) warmPattern(pattern QueryPattern) {
 		"priority":  pattern.Priority,
 	}).Debug("Warming cache pattern")
 
-	if result, found := w.cache.Get(ctx, pattern.Query); found {
+	if _, found := w.cache.Get(ctx, pattern.Query); found {
 		logrus.WithField("query", pattern.Query).Debug("Pattern already in cache, skipping")
 		w.updateLastWarmed(pattern.Query, pattern.Model)
 		return

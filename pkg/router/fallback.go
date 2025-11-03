@@ -153,17 +153,23 @@ func (s *FallbackStrategy) isProviderAvailable(provider models.ModelType) bool {
 	}
 
 	availability := s.router.GetAvailability()
-	providerStr := string(provider)
 	
 	switch provider {
+	case models.OpenAI:
+		return availability.OpenAI
+	case models.Gemini:
+		return availability.Gemini
+	case models.Mistral:
+		return availability.Mistral
+	case models.Claude:
+		return availability.Claude
 	case models.VertexAI:
-		providerStr = "vertex_ai"
+		return availability.VertexAI
 	case models.Bedrock:
-		providerStr = "bedrock"
+		return availability.Bedrock
+	default:
+		return false
 	}
-
-	available, exists := availability[providerStr]
-	return exists && available
 }
 
 func (s *FallbackStrategy) GetFallbackChain() []models.ModelType {

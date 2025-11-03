@@ -190,27 +190,27 @@ func (d *Detector) CheckUnusualUsage() []string {
 		for _, p := range patterns {
 			percentage := float64(p.RequestCount) / float64(totalRequests)
 			if percentage > 0.9 {
-				alert := logrus.WithFields(logrus.Fields{
+				alert := "Unusual usage pattern: single model dominates"
+				logrus.WithFields(logrus.Fields{
 					"provider":      provider,
 					"model_version": p.ModelVersion,
 					"percentage":    percentage * 100,
-				}).Sprint("Unusual usage pattern: single model dominates")
+				}).Warn(alert)
 				
 				alerts = append(alerts, alert)
-				logrus.Warn(alert)
 			}
 		}
 		
 		for _, p := range patterns {
 			if time.Since(p.LastSeen) > 24*time.Hour {
-				alert := logrus.WithFields(logrus.Fields{
+				alert := "Unusual usage pattern: model not seen recently"
+				logrus.WithFields(logrus.Fields{
 					"provider":      provider,
 					"model_version": p.ModelVersion,
 					"last_seen":     p.LastSeen,
-				}).Sprint("Unusual usage pattern: model not seen recently")
+				}).Warn(alert)
 				
 				alerts = append(alerts, alert)
-				logrus.Warn(alert)
 			}
 		}
 	}
