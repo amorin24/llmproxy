@@ -1,0 +1,628 @@
+openapi: 3.0.3
+info:
+  title: LLM Gateway API
+  description: |
+    LLM Gateway provides a unified interface for multiple LLM providers with cost tracking,
+    observability, streaming, async jobs, and advanced routing capabilities.
+    
+    - Multi-provider support (OpenAI, Gemini, Mistral, Claude, Vertex AI, Bedrock)
+    - Cost tracking and estimation
+    - Server-Sent Events (SSE) streaming
+    - WebSocket streaming
+    - Async job processing
+    - Circuit breakers and fallback routing
+    - SLO tracking and monitoring
+    - Cost anomaly detection
+    
+  version: 1.0.0
+  contact:
+    name: LLM Gateway Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Legacy API
+    description: Original proxy endpoints (backward compatible)
+  - name: Gateway v1
+    description: Versioned gateway endpoints with enhanced features
+  - name: Streaming
+    description: Real-time streaming endpoints
+  - name: Jobs
+    description: Async job processing
+  - name: Cost
+    description: Cost estimation and tracking
+  - name: Health
+    description: Health and status endpoints
+
+paths:
+  /api/query:
+    post:
+      tags:
+        - Legacy API
+      summary: Query LLM (Legacy)
+      description: Original query endpoint for backward compatibility
+      operationId: legacyQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegacyQueryRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyQueryResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/status:
+    get:
+      tags:
+        - Health
+      summary: Provider status (Legacy)
+      description: Check availability of all LLM providers
+      operationId: legacyStatus
+      responses:
+        '200':
+          description: Provider status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /v1/gateway/query:
+    post:
+      tags:
+        - Gateway v1
+      summary: Query LLM with enhanced features
+      description: |
+        Enhanced query endpoint with cost controls, dry-run mode, and tenant tracking.
+        Supports all Phase 0-4 features including cost estimation, SLO tracking, and monitoring.
+      operationId: gatewayQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewayQueryRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayQueryResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded or cost limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/gateway/cost-estimate:
+    post:
+      tags:
+        - Cost
+      summary: Estimate query cost
+      description: Estimate the cost of a query before execution
+      operationId: estimateCost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CostEstimateRequest'
+      responses:
+        '200':
+          description: Cost estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostEstimateResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/gateway/dry-run:
+    post:
+      tags:
+        - Gateway v1
+      summary: Dry-run query
+      description: |
+        Validate request and estimate cost without calling providers.
+        Useful for testing and cost planning.
+      operationId: dryRunQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewayQueryRequest'
+      responses:
+        '200':
+          description: Dry-run result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DryRunResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/gateway/stream:
+    post:
+      tags:
+        - Streaming
+      summary: Stream LLM response (SSE)
+      description: |
+        Stream LLM response in real-time using Server-Sent Events (SSE).
+        Includes incremental cost tracking.
+      operationId: streamQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream with JSON chunks
+
+  /v1/gateway/ws:
+    get:
+      tags:
+        - Streaming
+      summary: WebSocket streaming
+      description: |
+        Bidirectional WebSocket connection for multi-turn conversations.
+        Supports real-time token streaming with cost tracking.
+      operationId: websocketStream
+      responses:
+        '101':
+          description: WebSocket connection established
+        '400':
+          description: Bad request
+
+  /v1/gateway/jobs:
+    post:
+      tags:
+        - Jobs
+      summary: Submit async job
+      description: Submit a long-running query as a background job
+      operationId: submitJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobSubmitRequest'
+      responses:
+        '202':
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobSubmitResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/gateway/jobs/{id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job status
+      description: Check the status of an async job
+      operationId: getJobStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/gateway/jobs/{id}/result:
+    get:
+      tags:
+        - Jobs
+      summary: Get job result
+      description: Retrieve the result of a completed job
+      operationId: getJobResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResultResponse'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '425':
+          description: Job not yet completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ModelType:
+      type: string
+      enum:
+        - openai
+        - gemini
+        - mistral
+        - claude
+        - vertexai
+        - bedrock
+      description: LLM provider type
+
+    TaskType:
+      type: string
+      enum:
+        - chat
+        - completion
+        - embedding
+        - summarization
+        - translation
+      description: Type of LLM task
+
+    JobStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - completed
+        - failed
+      description: Status of an async job
+
+    LegacyQueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: The query text
+          example: "What is machine learning?"
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+          description: Specific model version
+          example: "gpt-4o"
+
+    LegacyQueryResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: The LLM response
+        model:
+          $ref: '#/components/schemas/ModelType'
+        cached:
+          type: boolean
+          description: Whether response was served from cache
+
+    GatewayQueryRequest:
+      type: object
+      required:
+        - query
+        - model
+        - task_type
+      properties:
+        query:
+          type: string
+          description: The query text
+          example: "Explain quantum computing"
+          minLength: 1
+          maxLength: 100000
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+          description: Specific model version
+          example: "gpt-4o"
+        task_type:
+          $ref: '#/components/schemas/TaskType'
+        request_id:
+          type: string
+          description: Optional request ID for tracking
+          format: uuid
+        tenant:
+          type: string
+          description: Optional tenant identifier
+          example: "team-alpha"
+        max_cost_usd:
+          type: number
+          format: float
+          description: Maximum cost limit for this request
+          example: 0.10
+          minimum: 0
+        dry_run:
+          type: boolean
+          description: If true, only estimate cost without calling provider
+          default: false
+
+    GatewayQueryResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        response:
+          type: string
+          description: The LLM response
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+        cached:
+          type: boolean
+        response_time_ms:
+          type: integer
+          description: Response time in milliseconds
+        cost_usd:
+          type: number
+          format: float
+          description: Actual cost of the request
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        tenant:
+          type: string
+
+    CostEstimateRequest:
+      type: object
+      required:
+        - query
+        - model
+      properties:
+        query:
+          type: string
+          description: The query text
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+        expected_response_tokens:
+          type: integer
+          description: Expected number of output tokens
+          default: 100
+
+    CostEstimateResponse:
+      type: object
+      properties:
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        estimated_cost_usd:
+          type: number
+          format: float
+        price_per_input_token:
+          type: number
+          format: float
+        price_per_output_token:
+          type: number
+          format: float
+
+    DryRunResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Whether the request is valid
+        estimated_cost_usd:
+          type: number
+          format: float
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        provider:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+        within_budget:
+          type: boolean
+          description: Whether request is within cost limits
+        errors:
+          type: array
+          items:
+            type: string
+          description: Validation errors if any
+
+    StreamRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+
+    JobSubmitRequest:
+      type: object
+      required:
+        - query
+        - model
+      properties:
+        query:
+          type: string
+        model:
+          $ref: '#/components/schemas/ModelType'
+        model_version:
+          type: string
+        callback_url:
+          type: string
+          format: uri
+          description: Optional webhook URL for job completion
+
+    JobSubmitResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        estimated_cost_usd:
+          type: number
+          format: float
+
+    JobStatusResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        estimated_cost_usd:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    JobResultResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        result:
+          type: string
+          description: The LLM response
+        actual_cost_usd:
+          type: number
+          format: float
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        provider:
+          $ref: '#/components/schemas/ModelType'
+        error:
+          type: string
+          description: Error message if job failed
+
+    StatusResponse:
+      type: object
+      properties:
+        providers:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              available:
+                type: boolean
+              last_checked:
+                type: string
+                format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        request_id:
+          type: string
+          format: uuid

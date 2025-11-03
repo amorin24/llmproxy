@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
   llmproxy:
@@ -10,13 +10,37 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY}
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - VERTEX_AI_API_KEY=${VERTEX_AI_API_KEY:-}
+      - VERTEX_AI_PROJECT_ID=${VERTEX_AI_PROJECT_ID:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - PORT=8080
       - CACHE_ENABLED=true
       - CACHE_TTL=300
+      - MOCK_MODE=${MOCK_MODE:-false}
+      - JOB_TTL_SECONDS=${JOB_TTL_SECONDS:-3600}
+      - MAX_JOB_WORKERS=${MAX_JOB_WORKERS:-10}
+      - CIRCUIT_BREAKER_MAX_FAILURES=${CIRCUIT_BREAKER_MAX_FAILURES:-5}
+      - CIRCUIT_BREAKER_TIMEOUT_SECONDS=${CIRCUIT_BREAKER_TIMEOUT_SECONDS:-60}
+      - SLO_WINDOW_HOURS=${SLO_WINDOW_HOURS:-24}
+      - COST_SPIKE_THRESHOLD=${COST_SPIKE_THRESHOLD:-2.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_SERVICE_NAME=llm-gateway
     volumes:
       - ./ui:/app/ui
+      - ./docs/price-catalog.json:/app/docs/price-catalog.json:ro
+      - ./templates:/app/templates:ro
     depends_on:
       - prometheus
+      - jaeger
+    networks:
+      - llm-gateway-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   llmproxy-test:
     build:
@@ -37,23 +61,84 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus:/etc/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+    networks:
+      - llm-gateway-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - llm-gateway-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     
   grafana:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
+    networks:
+      - llm-gateway-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - llm-gateway-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:
+
+networks:
+  llm-gateway-network:
+    driver: bridge

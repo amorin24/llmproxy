@@ -1,0 +1,85 @@
+
+templates:
+  summarize:
+    prompt: "Summarize the following text:\n\n{{text}}\n\nSummary:"
+    model: claude
+    max_tokens: 200
+    temperature: 0.3
+    description: "Summarize a given text"
+
+  translate:
+    prompt: "Translate the following text from {{source_lang}} to {{target_lang}}:\n\n{{text}}\n\nTranslation:"
+    model: openai
+    max_tokens: 500
+    temperature: 0.3
+    description: "Translate text between languages"
+
+  explain_code:
+    prompt: "Explain the following {{language}} code:\n\n```{{language}}\n{{code}}\n```\n\nExplanation:"
+    model: openai
+    max_tokens: 300
+    temperature: 0.5
+    description: "Explain code in a given programming language"
+
+  qa:
+    prompt: "Context: {{context}}\n\nQuestion: {{question}}\n\nAnswer:"
+    model: gemini
+    max_tokens: 150
+    temperature: 0.7
+    description: "Answer questions based on context"
+
+  creative_writing:
+    prompt: "Write a {{genre}} story about {{topic}}. Style: {{style}}.\n\nStory:"
+    model: claude
+    max_tokens: 1000
+    temperature: 0.9
+    description: "Generate creative writing"
+
+  email:
+    prompt: "Write a {{tone}} email to {{recipient}} about {{subject}}.\n\nEmail:"
+    model: openai
+    max_tokens: 300
+    temperature: 0.7
+    description: "Generate professional emails"
+
+  extract_data:
+    prompt: "Extract {{data_type}} from the following text:\n\n{{text}}\n\nExtracted {{data_type}}:"
+    model: gemini
+    max_tokens: 200
+    temperature: 0.2
+    description: "Extract structured data from text"
+
+  sentiment:
+    prompt: "Analyze the sentiment of the following text and classify it as positive, negative, or neutral:\n\n{{text}}\n\nSentiment:"
+    model: mistral
+    max_tokens: 50
+    temperature: 0.1
+    description: "Analyze text sentiment"
+
+  meeting_notes:
+    prompt: "Summarize the following meeting transcript into structured notes with key points, action items, and decisions:\n\n{{transcript}}\n\nMeeting Notes:"
+    model: claude
+    max_tokens: 500
+    temperature: 0.4
+    description: "Generate structured meeting notes"
+
+  code_review:
+    prompt: "Review the following {{language}} code and provide feedback on:\n1. Code quality\n2. Potential bugs\n3. Performance improvements\n4. Best practices\n\n```{{language}}\n{{code}}\n```\n\nCode Review:"
+    model: openai
+    max_tokens: 600
+    temperature: 0.5
+    description: "Perform code review"
+
+  sql_generation:
+    prompt: "Generate a SQL query for the following request:\n\nDatabase schema: {{schema}}\n\nRequest: {{request}}\n\nSQL Query:"
+    model: openai
+    max_tokens: 200
+    temperature: 0.2
+    description: "Generate SQL queries from natural language"
+
+  product_description:
+    prompt: "Write a compelling product description for:\n\nProduct: {{product_name}}\nFeatures: {{features}}\nTarget audience: {{audience}}\n\nProduct Description:"
+    model: claude
+    max_tokens: 300
+    temperature: 0.8
+    description: "Generate product descriptions"
