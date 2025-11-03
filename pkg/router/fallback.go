@@ -95,7 +95,7 @@ func (s *FallbackStrategy) Execute(ctx context.Context, query string, modelVersi
 					"retry":    retry,
 					"backoff":  backoff,
 				}).Debug("Retrying with backoff")
-				
+
 				select {
 				case <-time.After(backoff):
 				case <-ctx.Done():
@@ -106,7 +106,7 @@ func (s *FallbackStrategy) Execute(ctx context.Context, query string, modelVersi
 			result, err := s.tryProvider(ctx, secondary, query, modelVersion, retry)
 			if err == nil {
 				fallbackAttempts.WithLabelValues(string(s.Primary), string(secondary), "true").Inc()
-				
+
 				logrus.WithFields(logrus.Fields{
 					"primary_provider":  s.Primary,
 					"fallback_provider": secondary,
@@ -114,7 +114,7 @@ func (s *FallbackStrategy) Execute(ctx context.Context, query string, modelVersi
 					"retry":             retry,
 					"duration":          time.Since(startTime),
 				}).Info("Fallback succeeded")
-				
+
 				return result, secondary, nil
 			}
 
@@ -153,7 +153,7 @@ func (s *FallbackStrategy) isProviderAvailable(provider models.ModelType) bool {
 	}
 
 	availability := s.router.GetAvailability()
-	
+
 	switch provider {
 	case models.OpenAI:
 		return availability.OpenAI
@@ -185,12 +185,12 @@ func (s *FallbackStrategy) UpdateSecondary(secondary []models.ModelType) {
 
 func CostAwareFallbackStrategy(primary models.ModelType, router *Router) *FallbackStrategy {
 	costOrder := []models.ModelType{
-		models.Gemini,    // Typically cheapest
-		models.Mistral,   // Mid-range
-		models.OpenAI,    // Mid-range
-		models.Claude,    // Higher cost
-		models.VertexAI,  // Variable
-		models.Bedrock,   // Variable
+		models.Gemini,   // Typically cheapest
+		models.Mistral,  // Mid-range
+		models.OpenAI,   // Mid-range
+		models.Claude,   // Higher cost
+		models.VertexAI, // Variable
+		models.Bedrock,  // Variable
 	}
 
 	secondary := []models.ModelType{}
@@ -212,12 +212,12 @@ func CostAwareFallbackStrategy(primary models.ModelType, router *Router) *Fallba
 
 func QualityAwareFallbackStrategy(primary models.ModelType, router *Router) *FallbackStrategy {
 	qualityOrder := []models.ModelType{
-		models.Claude,    // Typically highest quality
-		models.OpenAI,    // High quality
-		models.Bedrock,   // High quality (Claude on AWS)
-		models.VertexAI,  // High quality (Gemini on GCP)
-		models.Gemini,    // Good quality
-		models.Mistral,   // Good quality
+		models.Claude,   // Typically highest quality
+		models.OpenAI,   // High quality
+		models.Bedrock,  // High quality (Claude on AWS)
+		models.VertexAI, // High quality (Gemini on GCP)
+		models.Gemini,   // Good quality
+		models.Mistral,  // Good quality
 	}
 
 	secondary := []models.ModelType{}

@@ -8,13 +8,13 @@ import (
 )
 
 type CostEstimate struct {
-	Provider              string
-	ModelVersion          string
-	InputTokens           int
-	OutputTokens          int
-	EstimatedCostUSD      float64
-	PricePerInputToken    float64
-	PricePerOutputToken   float64
+	Provider            string
+	ModelVersion        string
+	InputTokens         int
+	OutputTokens        int
+	EstimatedCostUSD    float64
+	PricePerInputToken  float64
+	PricePerOutputToken float64
 }
 
 type CostEstimator struct {
@@ -32,11 +32,11 @@ func (ce *CostEstimator) EstimatePreCall(provider string, modelVersion string, i
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pricing: %w", err)
 	}
-	
+
 	inputCost := (float64(inputTokens) / 1000.0) * pricing.InputPer1kTokens
 	outputCost := (float64(expectedOutputTokens) / 1000.0) * pricing.OutputPer1kTokens
 	totalCost := inputCost + outputCost
-	
+
 	return &CostEstimate{
 		Provider:            provider,
 		ModelVersion:        modelVersion,
@@ -53,11 +53,11 @@ func (ce *CostEstimator) EstimatePostCall(provider string, modelVersion string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pricing: %w", err)
 	}
-	
+
 	inputCost := (float64(inputTokens) / 1000.0) * pricing.InputPer1kTokens
 	outputCost := (float64(outputTokens) / 1000.0) * pricing.OutputPer1kTokens
 	totalCost := inputCost + outputCost
-	
+
 	return &CostEstimate{
 		Provider:            provider,
 		ModelVersion:        modelVersion,
@@ -71,14 +71,14 @@ func (ce *CostEstimator) EstimatePostCall(provider string, modelVersion string, 
 
 func EstimateTokenCount(text string) int {
 	text = strings.TrimSpace(text)
-	
+
 	charCount := len(text)
 	tokenCount := charCount / 4
-	
+
 	if tokenCount == 0 && charCount > 0 {
 		tokenCount = 1
 	}
-	
+
 	return tokenCount
 }
 

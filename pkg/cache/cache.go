@@ -39,14 +39,14 @@ type InMemoryCache struct {
 func (c *InMemoryCache) Get(key string) (interface{}, bool) {
 	c.cacheMutex.RLock()
 	defer c.cacheMutex.RUnlock()
-	
+
 	return c.cache.Get(key)
 }
 
 func (c *InMemoryCache) Set(key string, value interface{}, ttl time.Duration) {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
-	
+
 	if c.maxItems > 0 {
 		if c.itemCount >= c.maxItems {
 			if _, exists := c.cache.Items()[key]; !exists {
@@ -57,32 +57,32 @@ func (c *InMemoryCache) Set(key string, value interface{}, ttl time.Duration) {
 				return
 			}
 		}
-		
+
 		if _, exists := c.cache.Items()[key]; !exists {
 			c.itemCount++
 		}
 	}
-	
+
 	c.cache.Set(key, value, ttl)
 }
 
 func (c *InMemoryCache) Delete(key string) {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
-	
+
 	if c.maxItems > 0 {
 		if _, exists := c.cache.Items()[key]; exists {
 			c.itemCount--
 		}
 	}
-	
+
 	c.cache.Delete(key)
 }
 
 func (c *InMemoryCache) Flush() {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
-	
+
 	c.cache.Flush()
 	c.itemCount = 0
 }
@@ -108,12 +108,12 @@ type Cache struct {
 func GetCache() *Cache {
 	once.Do(func() {
 		cfg := config.GetConfig()
-		
+
 		ttl := time.Duration(cfg.CacheTTL) * time.Second
 		if ttl == 0 {
 			ttl = time.Duration(defaultCacheTTL) * time.Second
 		}
-		
+
 		maxItemsStr := os.Getenv("CACHE_MAX_ITEMS")
 		maxItems := defaultMaxItems
 		if maxItemsStr != "" {
@@ -121,26 +121,26 @@ func GetCache() *Cache {
 				maxItems = parsedMaxItems
 			}
 		}
-		
+
 		provider := NewInMemoryCache(
 			ttl,
 			time.Duration(defaultCleanupTime)*time.Second,
 			maxItems,
 		)
-		
+
 		cacheInstance = &Cache{
 			provider: provider,
 			enabled:  cfg.CacheEnabled,
 			ttl:      ttl,
 		}
-		
+
 		logrus.WithFields(logrus.Fields{
 			"enabled":   cfg.CacheEnabled,
 			"ttl":       ttl,
 			"max_items": maxItems,
 		}).Info("Cache initialized")
 	})
-	
+
 	return cacheInstance
 }
 
@@ -148,13 +148,13 @@ func (c *Cache) Get(req models.QueryRequest) (models.QueryResponse, bool) {
 	if !c.enabled {
 		return models.QueryResponse{}, false
 	}
-	
+
 	cacheKey := generateCacheKey(req)
 	if cachedResponse, found := c.provider.Get(cacheKey); found {
 		logrus.WithField("cache_key", cacheKey).Debug("Cache hit")
 		return cachedResponse.(models.QueryResponse), true
 	}
-	
+
 	logrus.WithField("cache_key", cacheKey).Debug("Cache miss")
 	return models.QueryResponse{}, false
 }
@@ -163,10 +163,10 @@ func (c *Cache) Set(req models.QueryRequest, resp models.QueryResponse) {
 	if !c.enabled {
 		return
 	}
-	
+
 	cacheKey := generateCacheKey(req)
 	c.provider.Set(cacheKey, resp, c.ttl)
-	
+
 	logrus.WithFields(logrus.Fields{
 		"cache_key": cacheKey,
 		"model":     resp.Model,
@@ -180,12 +180,12 @@ func generateCacheKey(req models.QueryRequest) string {
 		"model":     string(req.Model),
 		"task_type": string(req.TaskType),
 	}
-	
+
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Sprintf("%s:%s:%s", req.Query, req.Model, req.TaskType)
 	}
-	
+
 	hash := sha256.Sum256(jsonData)
 	return hex.EncodeToString(hash[:])
 }

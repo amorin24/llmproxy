@@ -8,37 +8,37 @@ import (
 )
 
 type LogFields struct {
-	Model           string
-	Query           string
-	Response        string
-	ResponseTime    int64
-	Cached          bool
-	Error           string
-	ErrorType       string
-	StatusCode      int
-	Timestamp       time.Time
-	RequestID       string
-	InputTokens     int
-	OutputTokens    int
-	TotalTokens     int
-	NumTokens       int // Deprecated: Use TotalTokens instead
-	NumRetries      int
-	OriginalModel   string
-	FallbackModel   string
+	Model         string
+	Query         string
+	Response      string
+	ResponseTime  int64
+	Cached        bool
+	Error         string
+	ErrorType     string
+	StatusCode    int
+	Timestamp     time.Time
+	RequestID     string
+	InputTokens   int
+	OutputTokens  int
+	TotalTokens   int
+	NumTokens     int // Deprecated: Use TotalTokens instead
+	NumRetries    int
+	OriginalModel string
+	FallbackModel string
 }
 
 func SetupLogging() {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339Nano,
 	})
-	
+
 	logrus.SetOutput(os.Stdout)
-	
+
 	logLevel := os.Getenv("LOG_LEVEL")
 	if logLevel == "" {
 		logLevel = "info"
 	}
-	
+
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		logrus.SetLevel(logrus.InfoLevel)
@@ -51,13 +51,13 @@ func LogRequest(fields LogFields) {
 	if fields.Timestamp.IsZero() {
 		fields.Timestamp = time.Now()
 	}
-	
+
 	logrus.WithFields(logrus.Fields{
-		"model":       fields.Model,
-		"query":       fields.Query,
-		"timestamp":   fields.Timestamp,
-		"request_id":  fields.RequestID,
-		"event_type":  "llm_request",
+		"model":      fields.Model,
+		"query":      fields.Query,
+		"timestamp":  fields.Timestamp,
+		"request_id": fields.RequestID,
+		"event_type": "llm_request",
 	}).Info("LLM query request")
 }
 
@@ -70,7 +70,7 @@ func LogResponse(fields LogFields) {
 		"request_id":    fields.RequestID,
 		"event_type":    "llm_response",
 	}
-	
+
 	if fields.TotalTokens > 0 {
 		logFields["total_tokens"] = fields.TotalTokens
 		if fields.InputTokens > 0 {
@@ -82,11 +82,11 @@ func LogResponse(fields LogFields) {
 	} else if fields.NumTokens > 0 {
 		logFields["num_tokens"] = fields.NumTokens
 	}
-	
+
 	if fields.StatusCode > 0 {
 		logFields["status_code"] = fields.StatusCode
 	}
-	
+
 	if fields.Response != "" {
 		truncationLimit := 500 // Default truncation limit for responses
 		if len(fields.Response) > truncationLimit {
@@ -98,16 +98,16 @@ func LogResponse(fields LogFields) {
 			logFields["response"] = fields.Response
 		}
 	}
-	
+
 	if fields.NumRetries > 0 {
 		logFields["num_retries"] = fields.NumRetries
 	}
-	
+
 	if fields.OriginalModel != "" && fields.FallbackModel != "" {
 		logFields["original_model"] = fields.OriginalModel
 		logFields["fallback_model"] = fields.FallbackModel
 	}
-	
+
 	if fields.Error != "" {
 		logFields["error"] = fields.Error
 		logFields["error_type"] = fields.ErrorType

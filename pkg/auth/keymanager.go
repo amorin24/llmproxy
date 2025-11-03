@@ -34,11 +34,11 @@ var (
 )
 
 type KeyManager struct {
-	store      KeyStore
-	encryptor  *Encryptor
-	rotator    *KeyRotator
-	mu         sync.RWMutex
-	auditLog   AuditLogger
+	store     KeyStore
+	encryptor *Encryptor
+	rotator   *KeyRotator
+	mu        sync.RWMutex
+	auditLog  AuditLogger
 }
 
 type APIKey struct {
@@ -74,18 +74,18 @@ type Encryptor struct {
 }
 
 type KeyRotator struct {
-	manager         *KeyManager
+	manager          *KeyManager
 	rotationInterval time.Duration
-	ticker          *time.Ticker
-	stopCh          chan struct{}
+	ticker           *time.Ticker
+	stopCh           chan struct{}
 }
 
 type KeyManagerConfig struct {
-	Store              KeyStore
-	EncryptionKey      string
-	RotationInterval   time.Duration
-	AuditLog           AuditLogger
-	AutoRotateEnabled  bool
+	Store             KeyStore
+	EncryptionKey     string
+	RotationInterval  time.Duration
+	AuditLog          AuditLogger
+	AutoRotateEnabled bool
 }
 
 func NewKeyManager(config KeyManagerConfig) (*KeyManager, error) {

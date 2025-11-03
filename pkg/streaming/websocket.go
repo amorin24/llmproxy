@@ -58,12 +58,12 @@ func (h *WebSocketHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reques
 	defer conn.Close()
 
 	sessionID := fmt.Sprintf("ws-%d", time.Now().UnixNano())
-	
+
 	welcomeMsg := WSMessage{
 		Type:      "connected",
 		SessionID: sessionID,
 	}
-	
+
 	if err := conn.WriteJSON(welcomeMsg); err != nil {
 		logrus.WithError(err).Error("Failed to send welcome message")
 		return
@@ -152,7 +152,7 @@ func (h *WebSocketHandler) handleQuery(conn *websocket.Conn, msg WSMessage, sess
 	}
 
 	provider := pricing.MapModelTypeToProvider(selectedModel)
-	
+
 	totalCost := 0.0
 	if result.InputTokens > 0 && result.OutputTokens > 0 {
 		costEstimate, err := h.costEstimator.EstimatePostCall(provider, modelVersion, result.InputTokens, result.OutputTokens)
@@ -173,36 +173,36 @@ func (h *WebSocketHandler) handleQuery(conn *websocket.Conn, msg WSMessage, sess
 
 func (h *WebSocketHandler) streamResponseWS(conn *websocket.Conn, response string, totalCost float64) {
 	words := splitIntoWords(response)
-	
+
 	costPerWord := 0.0
 	if len(words) > 0 {
 		costPerWord = totalCost / float64(len(words))
 	}
-	
+
 	accumulatedCost := 0.0
-	
+
 	for _, word := range words {
 		accumulatedCost += costPerWord
-		
+
 		chunk := WSMessage{
 			Type:    "token",
 			Token:   word,
 			CostUSD: accumulatedCost,
 		}
-		
+
 		if err := conn.WriteJSON(chunk); err != nil {
 			logrus.WithError(err).Error("Failed to send WebSocket message")
 			return
 		}
-		
+
 		time.Sleep(50 * time.Millisecond)
 	}
-	
+
 	finalMsg := WSMessage{
 		Type:         "done",
 		Done:         true,
 		TotalCostUSD: totalCost,
 	}
-	
+
 	conn.WriteJSON(finalMsg)
 }

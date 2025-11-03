@@ -70,23 +70,23 @@ func TestModelError(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := NewModelError(tc.model, tc.code, tc.err, tc.retryable)
-			
+
 			if err.Model != tc.model {
 				t.Errorf("Expected model to be '%s', got '%s'", tc.model, err.Model)
 			}
-			
+
 			if err.Code != tc.code {
 				t.Errorf("Expected code to be %d, got %d", tc.code, err.Code)
 			}
-			
+
 			if err.Retryable != tc.retryable {
 				t.Errorf("Expected retryable to be %v, got %v", tc.retryable, err.Retryable)
 			}
-			
+
 			if err.Error() != tc.expectedMsg {
 				t.Errorf("Expected error message '%s', got '%s'", tc.expectedMsg, err.Error())
 			}
-			
+
 			unwrapped := err.Unwrap()
 			if unwrapped.Error() != tc.expectedUnwrap.Error() {
 				t.Errorf("Expected unwrapped error '%v', got '%v'", tc.expectedUnwrap, unwrapped)
@@ -97,12 +97,12 @@ func TestModelError(t *testing.T) {
 
 func TestHelperFunctions(t *testing.T) {
 	testCases := []struct {
-		name           string
-		createFunc     func() error
-		expectedModel  string
-		expectedCode   int
-		expectedErr    error
-		expectedRetry  bool
+		name          string
+		createFunc    func() error
+		expectedModel string
+		expectedCode  int
+		expectedErr   error
+		expectedRetry bool
 	}{
 		{
 			name:          "Timeout error",
@@ -157,24 +157,24 @@ func TestHelperFunctions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.createFunc()
-			
+
 			var modelErr *ModelError
 			if !errors.As(err, &modelErr) {
 				t.Fatalf("Expected error to be a ModelError, got %T", err)
 			}
-			
+
 			if modelErr.Model != tc.expectedModel {
 				t.Errorf("Expected model to be '%s', got '%s'", tc.expectedModel, modelErr.Model)
 			}
-			
+
 			if modelErr.Code != tc.expectedCode {
 				t.Errorf("Expected code to be %d, got %d", tc.expectedCode, modelErr.Code)
 			}
-			
+
 			if !errors.Is(modelErr.Unwrap(), tc.expectedErr) {
 				t.Errorf("Expected unwrapped error to be %v, got %v", tc.expectedErr, modelErr.Unwrap())
 			}
-			
+
 			if modelErr.Retryable != tc.expectedRetry {
 				t.Errorf("Expected retryable to be %v, got %v", tc.expectedRetry, modelErr.Retryable)
 			}
@@ -268,60 +268,60 @@ func TestErrorsAs(t *testing.T) {
 			name: "Timeout error",
 			err:  NewTimeoutError("openai"),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "openai" && 
-				       modelErr.Code == 408 && 
-				       errors.Is(modelErr.Unwrap(), ErrTimeout) &&
-				       modelErr.Retryable
+				return modelErr.Model == "openai" &&
+					modelErr.Code == 408 &&
+					errors.Is(modelErr.Unwrap(), ErrTimeout) &&
+					modelErr.Retryable
 			},
 		},
 		{
 			name: "Rate limit error",
 			err:  NewRateLimitError("gemini"),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "gemini" && 
-				       modelErr.Code == 429 && 
-				       errors.Is(modelErr.Unwrap(), ErrRateLimit) &&
-				       modelErr.Retryable
+				return modelErr.Model == "gemini" &&
+					modelErr.Code == 429 &&
+					errors.Is(modelErr.Unwrap(), ErrRateLimit) &&
+					modelErr.Retryable
 			},
 		},
 		{
 			name: "Invalid response error",
 			err:  NewInvalidResponseError("mistral", errors.New("bad json")),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "mistral" && 
-				       modelErr.Code == 500 && 
-				       errors.Is(modelErr.Unwrap(), ErrInvalidResponse) &&
-				       !modelErr.Retryable
+				return modelErr.Model == "mistral" &&
+					modelErr.Code == 500 &&
+					errors.Is(modelErr.Unwrap(), ErrInvalidResponse) &&
+					!modelErr.Retryable
 			},
 		},
 		{
 			name: "Empty response error",
 			err:  NewEmptyResponseError("claude"),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "claude" && 
-				       modelErr.Code == 500 && 
-				       errors.Is(modelErr.Unwrap(), ErrEmptyResponse) &&
-				       !modelErr.Retryable
+				return modelErr.Model == "claude" &&
+					modelErr.Code == 500 &&
+					errors.Is(modelErr.Unwrap(), ErrEmptyResponse) &&
+					!modelErr.Retryable
 			},
 		},
 		{
 			name: "Unavailable error",
 			err:  NewUnavailableError("all"),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "all" && 
-				       modelErr.Code == 503 && 
-				       errors.Is(modelErr.Unwrap(), ErrUnavailable) &&
-				       modelErr.Retryable
+				return modelErr.Model == "all" &&
+					modelErr.Code == 503 &&
+					errors.Is(modelErr.Unwrap(), ErrUnavailable) &&
+					modelErr.Retryable
 			},
 		},
 		{
 			name: "API key missing error",
 			err:  NewModelError("openai", 401, ErrAPIKeyMissing, false),
 			checkFields: func(modelErr *ModelError) bool {
-				return modelErr.Model == "openai" && 
-				       modelErr.Code == 401 && 
-				       errors.Is(modelErr.Unwrap(), ErrAPIKeyMissing) &&
-				       !modelErr.Retryable
+				return modelErr.Model == "openai" &&
+					modelErr.Code == 401 &&
+					errors.Is(modelErr.Unwrap(), ErrAPIKeyMissing) &&
+					!modelErr.Retryable
 			},
 		},
 	}
@@ -332,7 +332,7 @@ func TestErrorsAs(t *testing.T) {
 			if !errors.As(tc.err, &modelErr) {
 				t.Fatalf("errors.As failed for %v", tc.err)
 			}
-			
+
 			if !tc.checkFields(modelErr) {
 				t.Errorf("ModelError fields not correctly extracted with errors.As: %+v", modelErr)
 			}
@@ -344,38 +344,38 @@ func TestErrorChaining(t *testing.T) {
 	baseErr := errors.New("base error")
 	wrappedErr := fmt.Errorf("wrapped: %w", baseErr)
 	modelErr := NewModelError("openai", 500, wrappedErr, false)
-	
+
 	if !errors.Is(modelErr, baseErr) {
 		t.Errorf("errors.Is should find base error in chain")
 	}
-	
+
 	if !errors.Is(modelErr, wrappedErr) {
 		t.Errorf("errors.Is should find wrapped error in chain")
 	}
-	
+
 	expectedMsg := "model openai error: wrapped: base error (code: 500)"
 	if modelErr.Error() != expectedMsg {
 		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, modelErr.Error())
 	}
-	
+
 	// Test multiple levels of ModelError
 	outerErr := NewModelError("gemini", 400, modelErr, true)
-	
+
 	var extractedOuter *ModelError
 	if !errors.As(outerErr, &extractedOuter) {
 		t.Fatalf("errors.As failed for outer ModelError")
 	}
-	
+
 	if extractedOuter.Model != "gemini" || extractedOuter.Code != 400 {
 		t.Errorf("Outer ModelError not correctly extracted")
 	}
-	
+
 	var extractedInner *ModelError
 	unwrappedOnce := extractedOuter.Unwrap()
 	if !errors.As(unwrappedOnce, &extractedInner) {
 		t.Fatalf("errors.As failed for inner ModelError")
 	}
-	
+
 	if extractedInner.Model != "openai" || extractedInner.Code != 500 {
 		t.Errorf("Inner ModelError not correctly extracted")
 	}
@@ -431,43 +431,43 @@ func TestErrorMessageFormatting(t *testing.T) {
 func TestContextCancellationErrors(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately to simulate context cancellation
-	
+
 	// Test wrapping context.Canceled in ModelError
 	modelErr := NewModelError("openai", 499, ctx.Err(), true)
-	
+
 	if !errors.Is(modelErr, context.Canceled) {
 		t.Errorf("Expected ModelError to be context.Canceled, got %v", modelErr)
 	}
-	
+
 	if modelErr.Code != 499 {
 		t.Errorf("Expected code to be 499, got %d", modelErr.Code)
 	}
-	
+
 	if !modelErr.Retryable {
 		t.Errorf("Expected retryable to be true, got false")
 	}
-	
+
 	expectedMsg := "model openai error: context canceled (code: 499)"
 	if modelErr.Error() != expectedMsg {
 		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, modelErr.Error())
 	}
-	
+
 	// Test wrapping context.DeadlineExceeded in ModelError
 	ctxWithTimeout, cancelTimeout := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancelTimeout()
-	
+
 	<-ctxWithTimeout.Done()
-	
+
 	timeoutErr := NewModelError("gemini", 408, ctxWithTimeout.Err(), true)
-	
+
 	if !errors.Is(timeoutErr, context.DeadlineExceeded) {
 		t.Errorf("Expected ModelError to be context.DeadlineExceeded, got %v", timeoutErr)
 	}
-	
+
 	if timeoutErr.Code != 408 {
 		t.Errorf("Expected code to be 408, got %d", timeoutErr.Code)
 	}
-	
+
 	expectedTimeoutMsg := "model gemini error: context deadline exceeded (code: 408)"
 	if timeoutErr.Error() != expectedTimeoutMsg {
 		t.Errorf("Expected error message '%s', got '%s'", expectedTimeoutMsg, timeoutErr.Error())
@@ -478,13 +478,13 @@ func TestConcurrentErrorHandling(t *testing.T) {
 	numGoroutines := 50
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
-	
+
 	errors := make([]*ModelError, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(index int) {
 			defer wg.Done()
-			
+
 			var err *ModelError
 			switch index % 5 {
 			case 0:
@@ -498,24 +498,24 @@ func TestConcurrentErrorHandling(t *testing.T) {
 			case 4:
 				err = NewUnavailableError(fmt.Sprintf("model-%d", index))
 			}
-			
+
 			errors[index] = err
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	for i, err := range errors {
 		if err == nil {
 			t.Errorf("Expected error at index %d, got nil", i)
 			continue
 		}
-		
+
 		expectedModel := fmt.Sprintf("model-%d", i)
 		if err.Model != expectedModel {
 			t.Errorf("Expected model '%s' at index %d, got '%s'", expectedModel, i, err.Model)
 		}
-		
+
 		switch i % 5 {
 		case 0:
 			if err.Err != ErrTimeout {

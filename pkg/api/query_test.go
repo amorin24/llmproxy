@@ -125,16 +125,16 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 			cancelContext:  true,
 		},
 		{
-			name:        "Invalid JSON request",
-			requestBody: `{"query":"test query", "model":`,
-			setupMocks: func(router *MockRouter, cache *MockCache) {},
+			name:           "Invalid JSON request",
+			requestBody:    `{"query":"test query", "model":`,
+			setupMocks:     func(router *MockRouter, cache *MockCache) {},
 			expectedStatus: http.StatusBadRequest,
 			expectError:    true,
 		},
 		{
-			name:        "Method not allowed",
-			requestBody: `{"query":"test query", "model":"openai"}`,
-			setupMocks: func(router *MockRouter, cache *MockCache) {},
+			name:           "Method not allowed",
+			requestBody:    `{"query":"test query", "model":"openai"}`,
+			setupMocks:     func(router *MockRouter, cache *MockCache) {},
 			expectedStatus: http.StatusMethodNotAllowed,
 			expectError:    true,
 		},
@@ -144,11 +144,11 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRouter := &MockRouter{}
 			mockCache := &MockCache{}
-			
+
 			tc.setupMocks(mockRouter, mockCache)
-			
+
 			originalFactory := llm.Factory
-			
+
 			llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 				if modelType == models.OpenAI {
 					return &MockLLMClient{
@@ -165,53 +165,53 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 				}
 				return &MockLLMClient{
 					modelType: modelType,
-						queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
+					queryFunc: func(ctx context.Context, query string, modelVersion string) (*llm.QueryResult, error) {
 						return &llm.QueryResult{
 							Response: "Fallback response from " + string(modelType),
 						}, nil
 					},
 				}, nil
 			}
-			
+
 			defer func() {
 				llm.Factory = originalFactory
 			}()
-			
+
 			handler := &Handler{
-				router: mockRouter,
-				cache:  mockCache,
+				router:      mockRouter,
+				cache:       mockCache,
 				rateLimiter: NewRateLimiter(100, 10),
 			}
-			
+
 			var req *http.Request
 			var method string
-			
+
 			if tc.name == "Method not allowed" {
 				method = http.MethodGet
 			} else {
 				method = http.MethodPost
 			}
-			
+
 			req = httptest.NewRequest(method, "/query", bytes.NewBufferString(tc.requestBody))
 			w := httptest.NewRecorder()
-			
+
 			if tc.cancelContext {
 				ctx, cancel := context.WithCancel(req.Context())
 				req = req.WithContext(ctx)
 				cancel() // Cancel immediately
 			}
-			
+
 			handler.QueryHandler(w, req)
-			
+
 			if w.Code != tc.expectedStatus {
 				t.Errorf("Expected status code %d, got %d", tc.expectedStatus, w.Code)
 			}
-			
+
 			var resp map[string]interface{}
 			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 				t.Fatalf("Error decoding response: %v", err)
 			}
-			
+
 			if tc.expectError {
 				if _, ok := resp["error"]; !ok {
 					t.Errorf("Expected error in response, got %+v", resp)
@@ -220,7 +220,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 				if _, ok := resp["error"]; ok {
 					t.Errorf("Did not expect error in response, got %+v", resp)
 				}
-				
+
 				if model, ok := resp["model"]; ok {
 					if model != string(tc.expectedModel) && tc.expectedModel != "" {
 						t.Errorf("Expected model %s, got %s", tc.expectedModel, model)
@@ -228,7 +228,7 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 				} else if tc.expectedModel != "" {
 					t.Errorf("Expected model in response, got none")
 				}
-				
+
 				if _, ok := resp["response"]; !ok {
 					t.Errorf("Expected response in response, got none")
 				}
@@ -240,17 +240,17 @@ func TestQueryHandlerWithMocks(t *testing.T) {
 func TestQueryHandlerWithTimeout(t *testing.T) {
 	mockRouter := &MockRouter{}
 	mockCache := &MockCache{}
-	
+
 	mockRouter.routeRequestFunc = func(ctx context.Context, req models.QueryRequest) (models.ModelType, error) {
 		return models.OpenAI, nil
 	}
-	
+
 	mockCache.getFunc = func(req models.QueryRequest) (models.QueryResponse, bool) {
 		return models.QueryResponse{}, false // Cache miss
 	}
-	
+
 	originalFactory := llm.Factory
-	
+
 	llm.Factory = func(modelType models.ModelType) (llm.Client, error) {
 		return &MockLLMClient{
 			modelType: modelType,
@@ -266,36 +266,36 @@ func TestQueryHandlerWithTimeout(t *testing.T) {
 			},
 		}, nil
 	}
-	
+
 	defer func() {
 		llm.Factory = originalFactory
 	}()
-	
+
 	handler := &Handler{
-		router: mockRouter,
-		cache:  mockCache,
+		router:      mockRouter,
+		cache:       mockCache,
 		rateLimiter: NewRateLimiter(100, 10),
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/query", bytes.NewBufferString(`{"query":"test query"}`))
 	req = req.WithContext(ctx)
-	
+
 	w := httptest.NewRecorder()
-	
+
 	handler.QueryHandler(w, req)
-	
+
 	if w.Code != http.StatusRequestTimeout {
 		t.Errorf("Expected status code %d, got %d", http.StatusRequestTimeout, w.Code)
 	}
-	
+
 	var resp map[string]interface{}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("Error decoding response: %v", err)
 	}
-	
+
 	if _, ok := resp["error"]; !ok {
 		t.Errorf("Expected error in response, got %+v", resp)
 	}

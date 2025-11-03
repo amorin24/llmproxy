@@ -5,30 +5,30 @@ import "time"
 type ModelType string
 
 const (
-	OpenAI    ModelType = "openai"
-	Gemini    ModelType = "gemini"
-	Mistral   ModelType = "mistral"
-	Claude    ModelType = "claude"
-	VertexAI  ModelType = "vertex_ai"
-	Bedrock   ModelType = "bedrock"
+	OpenAI   ModelType = "openai"
+	Gemini   ModelType = "gemini"
+	Mistral  ModelType = "mistral"
+	Claude   ModelType = "claude"
+	VertexAI ModelType = "vertex_ai"
+	Bedrock  ModelType = "bedrock"
 )
 
 type TaskType string
 
 const (
-	TextGeneration   TaskType = "text_generation"
-	Summarization    TaskType = "summarization"
+	TextGeneration    TaskType = "text_generation"
+	Summarization     TaskType = "summarization"
 	SentimentAnalysis TaskType = "sentiment_analysis"
 	QuestionAnswering TaskType = "question_answering"
-	Other            TaskType = "other"
+	Other             TaskType = "other"
 )
 
 type QueryRequest struct {
 	Query        string    `json:"query"`
-	Model        ModelType `json:"model,omitempty"`        // Optional - if not provided, will be determined by the proxy
+	Model        ModelType `json:"model,omitempty"`         // Optional - if not provided, will be determined by the proxy
 	ModelVersion string    `json:"model_version,omitempty"` // Optional - specific version of the model to use
-	TaskType     TaskType  `json:"task_type,omitempty"`    // Optional - helps with model selection
-	RequestID    string    `json:"request_id,omitempty"`   // Optional - for tracking requests
+	TaskType     TaskType  `json:"task_type,omitempty"`     // Optional - helps with model selection
+	RequestID    string    `json:"request_id,omitempty"`    // Optional - for tracking requests
 }
 
 type QueryResponse struct {

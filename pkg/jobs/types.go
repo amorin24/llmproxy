@@ -16,24 +16,24 @@ const (
 )
 
 type Job struct {
-	ID                string
-	Query             string
-	Model             string
-	ModelVersion      string
-	Status            JobStatus
-	EstimatedCostUSD  float64
-	ActualCostUSD     float64
-	Result            string
-	Error             string
-	CallbackURL       string
-	CreatedAt         time.Time
-	StartedAt         *time.Time
-	CompletedAt       *time.Time
-	InputTokens       int
-	OutputTokens      int
-	TotalTokens       int
-	Provider          string
-	RequestID         string
+	ID               string
+	Query            string
+	Model            string
+	ModelVersion     string
+	Status           JobStatus
+	EstimatedCostUSD float64
+	ActualCostUSD    float64
+	Result           string
+	Error            string
+	CallbackURL      string
+	CreatedAt        time.Time
+	StartedAt        *time.Time
+	CompletedAt      *time.Time
+	InputTokens      int
+	OutputTokens     int
+	TotalTokens      int
+	Provider         string
+	RequestID        string
 }
 
 type JobSubmitRequest struct {
@@ -61,13 +61,13 @@ type JobStatusResponse struct {
 }
 
 type JobResultResponse struct {
-	JobID         string `json:"job_id"`
-	Status        string `json:"status"`
-	Result        string `json:"result,omitempty"`
+	JobID         string  `json:"job_id"`
+	Status        string  `json:"status"`
+	Result        string  `json:"result,omitempty"`
 	ActualCostUSD float64 `json:"actual_cost_usd,omitempty"`
-	InputTokens   int    `json:"input_tokens,omitempty"`
-	OutputTokens  int    `json:"output_tokens,omitempty"`
-	TotalTokens   int    `json:"total_tokens,omitempty"`
-	Provider      string `json:"provider,omitempty"`
-	Error         string `json:"error,omitempty"`
+	InputTokens   int     `json:"input_tokens,omitempty"`
+	OutputTokens  int     `json:"output_tokens,omitempty"`
+	TotalTokens   int     `json:"total_tokens,omitempty"`
+	Provider      string  `json:"provider,omitempty"`
+	Error         string  `json:"error,omitempty"`
 }

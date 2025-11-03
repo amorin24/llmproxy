@@ -24,7 +24,7 @@ type GeminiClient struct {
 }
 
 type GeminiRequest struct {
-	Contents []GeminiContent `json:"contents"`
+	Contents         []GeminiContent        `json:"contents"`
 	GenerationConfig GeminiGenerationConfig `json:"generationConfig"`
 }
 
@@ -37,8 +37,8 @@ type GeminiPart struct {
 }
 
 type GeminiGenerationConfig struct {
-	Temperature float64 `json:"temperature"`
-	MaxOutputTokens int `json:"maxOutputTokens"`
+	Temperature     float64 `json:"temperature"`
+	MaxOutputTokens int     `json:"maxOutputTokens"`
 }
 
 type GeminiResponse struct {
@@ -49,7 +49,7 @@ type GeminiResponse struct {
 			} `json:"parts"`
 		} `json:"content"`
 		FinishReason string `json:"finishReason"`
-		TokenCount struct {
+		TokenCount   struct {
 			TotalTokens int `json:"totalTokens"`
 		} `json:"tokenCount,omitempty"`
 	} `json:"candidates"`
@@ -99,9 +99,9 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVers
 
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Gemini key, returning simulated response")
-		
+
 		time.Sleep(250 * time.Millisecond)
-		
+
 		result.StatusCode = http.StatusOK
 		result.Response = "This is a simulated response for testing purposes. The actual Gemini model is currently unavailable. This response allows testing of the copy and download functionality."
 		result.InputTokens = len(query) / 4
@@ -109,7 +109,7 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVers
 		result.TotalTokens = result.InputTokens + result.OutputTokens
 		result.NumTokens = result.TotalTokens
 		result.ResponseTime = time.Since(startTime).Milliseconds()
-		
+
 		return result, nil
 	}
 
@@ -124,7 +124,7 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVers
 			},
 		},
 		GenerationConfig: GeminiGenerationConfig{
-			Temperature: 0.7,
+			Temperature:     0.7,
 			MaxOutputTokens: 150,
 		},
 	})
@@ -167,12 +167,12 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVers
 		if resp.StatusCode == http.StatusTooManyRequests || geminiResp.Error.Code == 429 {
 			return nil, myerrors.NewRateLimitError(string(models.Gemini))
 		}
-		
+
 		errorMsg := geminiResp.Error.Message
 		if errorMsg == "" {
 			errorMsg = fmt.Sprintf("API error with status code: %d", resp.StatusCode)
 		}
-		
+
 		return nil, myerrors.NewModelError(string(models.Gemini), resp.StatusCode, fmt.Errorf("%s", errorMsg), resp.StatusCode >= 500)
 	}
 
@@ -181,12 +181,12 @@ func (c *GeminiClient) executeQuery(ctx context.Context, query string, modelVers
 	}
 
 	result.Response = geminiResp.Candidates[0].Content.Parts[0].Text
-	
+
 	if len(geminiResp.Candidates) > 0 && geminiResp.Candidates[0].TokenCount.TotalTokens > 0 {
 		result.TotalTokens = geminiResp.Candidates[0].TokenCount.TotalTokens
 		result.NumTokens = result.TotalTokens // For backward compatibility
 	}
-	
+
 	EstimateTokens(result, query, result.Response)
 
 	return result, nil
@@ -196,7 +196,7 @@ func (c *GeminiClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
 	}
-	
+
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Gemini key, assuming service is available")
 		return true

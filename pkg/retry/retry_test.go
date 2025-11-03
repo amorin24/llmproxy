@@ -13,11 +13,11 @@ import (
 
 func TestRetrySuccess(t *testing.T) {
 	testCases := []struct {
-		name           string
-		operation      func() (interface{}, error)
-		config         Config
-		expectedResult interface{}
-		expectedError  bool
+		name             string
+		operation        func() (interface{}, error)
+		config           Config
+		expectedResult   interface{}
+		expectedError    bool
 		expectedAttempts int
 	}{
 		{
@@ -25,9 +25,9 @@ func TestRetrySuccess(t *testing.T) {
 			operation: func() (interface{}, error) {
 				return "success", nil
 			},
-			config:          DefaultConfig,
-			expectedResult:  "success",
-			expectedError:   false,
+			config:           DefaultConfig,
+			expectedResult:   "success",
+			expectedError:    false,
 			expectedAttempts: 1,
 		},
 		{
@@ -42,9 +42,9 @@ func TestRetrySuccess(t *testing.T) {
 					return "success after retry", nil
 				}, nil
 			},
-			config:          DefaultConfig,
-			expectedResult:  "success after retry",
-			expectedError:   false,
+			config:           DefaultConfig,
+			expectedResult:   "success after retry",
+			expectedError:    false,
 			expectedAttempts: 3,
 		},
 		{
@@ -52,9 +52,9 @@ func TestRetrySuccess(t *testing.T) {
 			operation: func() (interface{}, error) {
 				return nil, errors.New("non-retryable error")
 			},
-			config:          DefaultConfig,
-			expectedResult:  nil,
-			expectedError:   true,
+			config:           DefaultConfig,
+			expectedResult:   nil,
+			expectedError:    true,
 			expectedAttempts: 1,
 		},
 		{
@@ -69,8 +69,8 @@ func TestRetrySuccess(t *testing.T) {
 				BackoffFactor:  2.0,
 				Jitter:         0.0,
 			},
-			expectedResult:  nil,
-			expectedError:   true,
+			expectedResult:   nil,
+			expectedError:    true,
 			expectedAttempts: 3, // Initial attempt + 2 retries
 		},
 	}
@@ -79,7 +79,7 @@ func TestRetrySuccess(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			attempts := 0
 			var operation func() (interface{}, error)
-			
+
 			if tc.name == "Success after retries" {
 				opFunc, _ := tc.operation()
 				operation = opFunc.(func() (interface{}, error))
@@ -89,9 +89,9 @@ func TestRetrySuccess(t *testing.T) {
 					return tc.operation()
 				}
 			}
-			
+
 			result, err := Do(context.Background(), operation, tc.config)
-			
+
 			if tc.expectedError {
 				if err == nil {
 					t.Errorf("Expected error, got nil")
@@ -104,7 +104,7 @@ func TestRetrySuccess(t *testing.T) {
 					t.Errorf("Expected result '%v', got '%v'", tc.expectedResult, result)
 				}
 			}
-			
+
 			if tc.name != "Success after retries" && attempts != tc.expectedAttempts {
 				t.Errorf("Expected %d attempts, got %d", tc.expectedAttempts, attempts)
 			}
@@ -114,8 +114,8 @@ func TestRetrySuccess(t *testing.T) {
 
 func TestRetryWithDifferentErrorTypes(t *testing.T) {
 	testCases := []struct {
-		name           string
-		errorFunc      func(attempt int) error
+		name             string
+		errorFunc        func(attempt int) error
 		expectedAttempts int
 	}{
 		{
@@ -179,7 +179,7 @@ func TestRetryWithDifferentErrorTypes(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attempts := 0
-			
+
 			operation := func() (interface{}, error) {
 				attempts++
 				err := tc.errorFunc(attempts)
@@ -188,7 +188,7 @@ func TestRetryWithDifferentErrorTypes(t *testing.T) {
 				}
 				return "success", nil
 			}
-			
+
 			config := Config{
 				MaxRetries:     10, // High enough to not interfere with test
 				InitialBackoff: 1 * time.Millisecond,
@@ -196,9 +196,9 @@ func TestRetryWithDifferentErrorTypes(t *testing.T) {
 				BackoffFactor:  1.5,
 				Jitter:         0.0,
 			}
-			
+
 			result, err := Do(context.Background(), operation, config)
-			
+
 			if tc.name != "Non-retryable error" {
 				if err != nil {
 					t.Errorf("Expected no error, got %v", err)
@@ -211,7 +211,7 @@ func TestRetryWithDifferentErrorTypes(t *testing.T) {
 					t.Errorf("Expected error for non-retryable error, got nil")
 				}
 			}
-			
+
 			if attempts != tc.expectedAttempts {
 				t.Errorf("Expected %d attempts, got %d", tc.expectedAttempts, attempts)
 			}
@@ -221,31 +221,31 @@ func TestRetryWithDifferentErrorTypes(t *testing.T) {
 
 func TestRetryWithContextTimeout(t *testing.T) {
 	testCases := []struct {
-		name           string
-		contextTimeout time.Duration
-		operationDelay time.Duration
-		expectedError  bool
+		name             string
+		contextTimeout   time.Duration
+		operationDelay   time.Duration
+		expectedError    bool
 		expectedAttempts int
 	}{
 		{
-			name:            "Context timeout before first retry",
-			contextTimeout:  50 * time.Millisecond,
-			operationDelay:  100 * time.Millisecond,
-			expectedError:   true,
+			name:             "Context timeout before first retry",
+			contextTimeout:   50 * time.Millisecond,
+			operationDelay:   100 * time.Millisecond,
+			expectedError:    true,
 			expectedAttempts: 1,
 		},
 		{
-			name:            "Context timeout during retries",
-			contextTimeout:  150 * time.Millisecond,
-			operationDelay:  60 * time.Millisecond,
-			expectedError:   true,
+			name:             "Context timeout during retries",
+			contextTimeout:   150 * time.Millisecond,
+			operationDelay:   60 * time.Millisecond,
+			expectedError:    true,
 			expectedAttempts: 2, // Initial + 1 retry before timeout
 		},
 		{
-			name:            "Operation completes before context timeout",
-			contextTimeout:  500 * time.Millisecond,
-			operationDelay:  20 * time.Millisecond,
-			expectedError:   false,
+			name:             "Operation completes before context timeout",
+			contextTimeout:   500 * time.Millisecond,
+			operationDelay:   20 * time.Millisecond,
+			expectedError:    false,
 			expectedAttempts: 3, // Initial + 2 retries to succeed
 		},
 	}
@@ -253,13 +253,13 @@ func TestRetryWithContextTimeout(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attempts := 0
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
 			defer cancel()
-			
+
 			operation := func() (interface{}, error) {
 				attempts++
-				
+
 				select {
 				case <-time.After(tc.operationDelay):
 					if attempts < 3 {
@@ -270,7 +270,7 @@ func TestRetryWithContextTimeout(t *testing.T) {
 					return nil, ctx.Err()
 				}
 			}
-			
+
 			config := Config{
 				MaxRetries:     5,
 				InitialBackoff: 10 * time.Millisecond,
@@ -278,9 +278,9 @@ func TestRetryWithContextTimeout(t *testing.T) {
 				BackoffFactor:  2.0,
 				Jitter:         0.0,
 			}
-			
+
 			result, err := Do(ctx, operation, config)
-			
+
 			if tc.expectedError {
 				if err == nil {
 					t.Errorf("Expected error due to context timeout, got nil")
@@ -296,7 +296,7 @@ func TestRetryWithContextTimeout(t *testing.T) {
 					t.Errorf("Expected result 'success', got '%v'", result)
 				}
 			}
-			
+
 			if attempts != tc.expectedAttempts {
 				t.Errorf("Expected %d attempts, got %d", tc.expectedAttempts, attempts)
 			}
@@ -306,9 +306,9 @@ func TestRetryWithContextTimeout(t *testing.T) {
 
 func TestRetryWithCustomConfig(t *testing.T) {
 	testCases := []struct {
-		name           string
-		config         Config
-		expectedAttempts int
+		name                string
+		config              Config
+		expectedAttempts    int
 		expectedMinDuration time.Duration
 		expectedMaxDuration time.Duration
 	}{
@@ -321,7 +321,7 @@ func TestRetryWithCustomConfig(t *testing.T) {
 				BackoffFactor:  1.5,
 				Jitter:         0.0,
 			},
-			expectedAttempts: 4, // Initial + 3 retries
+			expectedAttempts:    4,                     // Initial + 3 retries
 			expectedMinDuration: 15 * time.Millisecond, // 5 + 7.5 + 11.25 = ~24ms
 			expectedMaxDuration: 50 * time.Millisecond, // With some buffer
 		},
@@ -334,7 +334,7 @@ func TestRetryWithCustomConfig(t *testing.T) {
 				BackoffFactor:  2.0,
 				Jitter:         0.0,
 			},
-			expectedAttempts: 3, // Initial + 2 retries
+			expectedAttempts:    3,                      // Initial + 2 retries
 			expectedMinDuration: 150 * time.Millisecond, // 50 + 100 = 150ms
 			expectedMaxDuration: 250 * time.Millisecond, // With some buffer
 		},
@@ -347,8 +347,8 @@ func TestRetryWithCustomConfig(t *testing.T) {
 				BackoffFactor:  2.0,
 				Jitter:         0.5, // 50% jitter
 			},
-			expectedAttempts: 3, // Initial + 2 retries
-			expectedMinDuration: 30 * time.Millisecond, // Minimum with jitter
+			expectedAttempts:    3,                      // Initial + 2 retries
+			expectedMinDuration: 30 * time.Millisecond,  // Minimum with jitter
 			expectedMaxDuration: 150 * time.Millisecond, // Maximum with jitter
 		},
 	}
@@ -356,7 +356,7 @@ func TestRetryWithCustomConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attempts := 0
-			
+
 			operation := func() (interface{}, error) {
 				attempts++
 				if attempts <= tc.expectedAttempts-1 {
@@ -364,27 +364,27 @@ func TestRetryWithCustomConfig(t *testing.T) {
 				}
 				return "success", nil
 			}
-			
+
 			start := time.Now()
 			result, err := Do(context.Background(), operation, tc.config)
 			duration := time.Since(start)
-			
+
 			if err != nil {
 				t.Errorf("Expected no error, got %v", err)
 			}
-			
+
 			if result != "success" {
 				t.Errorf("Expected result 'success', got '%v'", result)
 			}
-			
+
 			if attempts != tc.expectedAttempts {
 				t.Errorf("Expected %d attempts, got %d", tc.expectedAttempts, attempts)
 			}
-			
+
 			if duration < tc.expectedMinDuration {
 				t.Errorf("Expected duration >= %v, got %v", tc.expectedMinDuration, duration)
 			}
-			
+
 			if duration > tc.expectedMaxDuration {
 				t.Errorf("Expected duration <= %v, got %v", tc.expectedMaxDuration, duration)
 			}
@@ -396,14 +396,14 @@ func TestConcurrentRetries(t *testing.T) {
 	numGoroutines := 10
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
-	
+
 	results := make([]string, numGoroutines)
 	errors := make([]error, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(index int) {
 			defer wg.Done()
-			
+
 			attempts := 0
 			operation := func() (interface{}, error) {
 				attempts++
@@ -412,7 +412,7 @@ func TestConcurrentRetries(t *testing.T) {
 				}
 				return fmt.Sprintf("success-%d", index), nil
 			}
-			
+
 			config := Config{
 				MaxRetries:     5,
 				InitialBackoff: 5 * time.Millisecond,
@@ -420,9 +420,9 @@ func TestConcurrentRetries(t *testing.T) {
 				BackoffFactor:  2.0,
 				Jitter:         0.1,
 			}
-			
+
 			result, err := Do(context.Background(), operation, config)
-			
+
 			if err != nil {
 				errors[index] = err
 			} else if resultStr, ok := result.(string); ok {
@@ -430,14 +430,14 @@ func TestConcurrentRetries(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		if errors[i] != nil {
 			t.Errorf("Goroutine %d returned error: %v", i, errors[i])
 		}
-		
+
 		expectedResult := fmt.Sprintf("success-%d", i)
 		if results[i] != expectedResult {
 			t.Errorf("Goroutine %d expected result '%s', got '%s'", i, expectedResult, results[i])
@@ -537,7 +537,7 @@ func TestCalculateBackoff(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			backoff := calculateBackoff(tc.attempt, tc.config)
-			
+
 			if tc.config.Jitter == 0 {
 				if backoff != tc.exactExpected {
 					t.Errorf("Expected backoff of %v, got %v", tc.exactExpected, backoff)
@@ -553,7 +553,7 @@ func TestCalculateBackoff(t *testing.T) {
 
 func TestRetryWithPanic(t *testing.T) {
 	attempts := 0
-	
+
 	operation := func() (interface{}, error) {
 		attempts++
 		if attempts <= 2 {
@@ -561,7 +561,7 @@ func TestRetryWithPanic(t *testing.T) {
 		}
 		return "success", nil
 	}
-	
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Expected panic, but none occurred")
@@ -571,8 +571,8 @@ func TestRetryWithPanic(t *testing.T) {
 			}
 		}
 	}()
-	
+
 	_, _ = Do(context.Background(), operation, DefaultConfig)
-	
+
 	t.Errorf("Expected panic, but function returned normally")
 }

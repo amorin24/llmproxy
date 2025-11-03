@@ -10,31 +10,31 @@ import (
 )
 
 type Monitor struct {
-	store              *jobs.JobStore
-	stuckJobThreshold  time.Duration // Alert if job running > threshold (default: 5 minutes)
-	failureRateWindow  time.Duration // Window for calculating failure rate (default: 1 hour)
-	queueDepthAlert    int           // Alert if pending jobs > threshold (default: 100)
-	
-	mu                 sync.RWMutex
-	recentJobs         []jobMetric
-	
-	jobQueueDepth      prometheus.Gauge
-	jobsRunning        prometheus.Gauge
-	jobsPending        prometheus.Gauge
-	jobsCompleted      *prometheus.CounterVec
-	jobsFailed         *prometheus.CounterVec
-	jobDuration        *prometheus.HistogramVec
-	stuckJobs          prometheus.Counter
-	jobFailureRate     prometheus.Gauge
+	store             *jobs.JobStore
+	stuckJobThreshold time.Duration // Alert if job running > threshold (default: 5 minutes)
+	failureRateWindow time.Duration // Window for calculating failure rate (default: 1 hour)
+	queueDepthAlert   int           // Alert if pending jobs > threshold (default: 100)
+
+	mu         sync.RWMutex
+	recentJobs []jobMetric
+
+	jobQueueDepth  prometheus.Gauge
+	jobsRunning    prometheus.Gauge
+	jobsPending    prometheus.Gauge
+	jobsCompleted  *prometheus.CounterVec
+	jobsFailed     *prometheus.CounterVec
+	jobDuration    *prometheus.HistogramVec
+	stuckJobs      prometheus.Counter
+	jobFailureRate prometheus.Gauge
 }
 
 type jobMetric struct {
-	JobID      string
-	Status     jobs.JobStatus
-	StartTime  time.Time
-	EndTime    time.Time
-	Duration   time.Duration
-	Success    bool
+	JobID     string
+	Status    jobs.JobStatus
+	StartTime time.Time
+	EndTime   time.Time
+	Duration  time.Duration
+	Success   bool
 }
 
 func NewMonitor(store *jobs.JobStore, stuckThreshold, failureWindow time.Duration, queueDepthAlert int) *Monitor {
@@ -47,14 +47,14 @@ func NewMonitor(store *jobs.JobStore, stuckThreshold, failureWindow time.Duratio
 	if queueDepthAlert == 0 {
 		queueDepthAlert = 100
 	}
-	
+
 	monitor := &Monitor{
 		store:             store,
 		stuckJobThreshold: stuckThreshold,
 		failureRateWindow: failureWindow,
 		queueDepthAlert:   queueDepthAlert,
 		recentJobs:        make([]jobMetric, 0),
-		
+
 		jobQueueDepth: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Name: "llmproxy_job_queue_depth",
@@ -108,7 +108,7 @@ func NewMonitor(store *jobs.JobStore, stuckThreshold, failureWindow time.Duratio
 			},
 		),
 	}
-	
+
 	prometheus.MustRegister(monitor.jobQueueDepth)
 	prometheus.MustRegister(monitor.jobsRunning)
 	prometheus.MustRegister(monitor.jobsPending)
@@ -117,7 +117,7 @@ func NewMonitor(store *jobs.JobStore, stuckThreshold, failureWindow time.Duratio
 	prometheus.MustRegister(monitor.jobDuration)
 	prometheus.MustRegister(monitor.stuckJobs)
 	prometheus.MustRegister(monitor.jobFailureRate)
-	
+
 	return monitor
 }
 
@@ -128,7 +128,7 @@ func (m *Monitor) Start() {
 func (m *Monitor) monitorLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		m.checkJobHealth()
 		m.updateMetrics()
@@ -137,22 +137,22 @@ func (m *Monitor) monitorLoop() {
 
 func (m *Monitor) checkJobHealth() {
 	allJobs := m.store.ListJobs()
-	
+
 	pendingCount := 0
 	runningCount := 0
 	stuckCount := 0
-	
+
 	for _, job := range allJobs {
 		switch job.Status {
 		case jobs.JobStatusPending:
 			pendingCount++
 		case jobs.JobStatusRunning:
 			runningCount++
-			
+
 			if job.StartedAt != nil && time.Since(*job.StartedAt) > m.stuckJobThreshold {
 				stuckCount++
 				m.stuckJobs.Inc()
-				
+
 				logrus.WithFields(logrus.Fields{
 					"job_id":   job.ID,
 					"duration": time.Since(*job.StartedAt),
@@ -161,14 +161,14 @@ func (m *Monitor) checkJobHealth() {
 			}
 		}
 	}
-	
+
 	if pendingCount > m.queueDepthAlert {
 		logrus.WithFields(logrus.Fields{
-			"pending": pendingCount,
+			"pending":   pendingCount,
 			"threshold": m.queueDepthAlert,
 		}).Warn("Job queue backing up")
 	}
-	
+
 	m.jobQueueDepth.Set(float64(pendingCount))
 	m.jobsRunning.Set(float64(runningCount))
 	m.jobsPending.Set(float64(pendingCount))
@@ -177,11 +177,11 @@ func (m *Monitor) checkJobHealth() {
 func (m *Monitor) updateMetrics() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	cutoff := time.Now().Add(-m.failureRateWindow)
 	totalJobs := 0
 	failedJobs := 0
-	
+
 	for _, metric := range m.recentJobs {
 		if metric.EndTime.After(cutoff) {
 			totalJobs++
@@ -190,14 +190,14 @@ func (m *Monitor) updateMetrics() {
 			}
 		}
 	}
-	
+
 	failureRate := 0.0
 	if totalJobs > 0 {
 		failureRate = float64(failedJobs) / float64(totalJobs)
 	}
-	
+
 	m.jobFailureRate.Set(failureRate)
-	
+
 	if totalJobs > 10 && failureRate > 0.2 {
 		logrus.WithFields(logrus.Fields{
 			"failure_rate": failureRate,
@@ -210,15 +210,15 @@ func (m *Monitor) updateMetrics() {
 func (m *Monitor) RecordJobStart(jobID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	metric := jobMetric{
 		JobID:     jobID,
 		Status:    jobs.JobStatusRunning,
 		StartTime: time.Now(),
 	}
-	
+
 	m.recentJobs = append(m.recentJobs, metric)
-	
+
 	cutoff := time.Now().Add(-24 * time.Hour)
 	filtered := make([]jobMetric, 0)
 	for _, j := range m.recentJobs {
@@ -232,7 +232,7 @@ func (m *Monitor) RecordJobStart(jobID string) {
 func (m *Monitor) RecordJobComplete(jobID, provider string, success bool, duration time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for i := range m.recentJobs {
 		if m.recentJobs[i].JobID == jobID {
 			m.recentJobs[i].Status = jobs.JobStatusCompleted
@@ -242,7 +242,7 @@ func (m *Monitor) RecordJobComplete(jobID, provider string, success bool, durati
 			break
 		}
 	}
-	
+
 	status := "completed"
 	if success {
 		m.jobsCompleted.WithLabelValues(provider).Inc()
@@ -250,44 +250,44 @@ func (m *Monitor) RecordJobComplete(jobID, provider string, success bool, durati
 		m.jobsFailed.WithLabelValues(provider).Inc()
 		status = "failed"
 	}
-	
+
 	m.jobDuration.WithLabelValues(provider, status).Observe(duration.Seconds())
 }
 
 func (m *Monitor) GetQueueDepth() int {
 	allJobs := m.store.ListJobs()
 	pendingCount := 0
-	
+
 	for _, job := range allJobs {
 		if job.Status == jobs.JobStatusPending {
 			pendingCount++
 		}
 	}
-	
+
 	return pendingCount
 }
 
 func (m *Monitor) GetRunningCount() int {
 	allJobs := m.store.ListJobs()
 	runningCount := 0
-	
+
 	for _, job := range allJobs {
 		if job.Status == jobs.JobStatusRunning {
 			runningCount++
 		}
 	}
-	
+
 	return runningCount
 }
 
 func (m *Monitor) GetFailureRate() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	cutoff := time.Now().Add(-m.failureRateWindow)
 	totalJobs := 0
 	failedJobs := 0
-	
+
 	for _, metric := range m.recentJobs {
 		if metric.EndTime.After(cutoff) {
 			totalJobs++
@@ -296,10 +296,10 @@ func (m *Monitor) GetFailureRate() float64 {
 			}
 		}
 	}
-	
+
 	if totalJobs == 0 {
 		return 0.0
 	}
-	
+
 	return float64(failedJobs) / float64(totalJobs)
 }

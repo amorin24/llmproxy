@@ -88,9 +88,9 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string, modelVer
 
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Mistral key, returning simulated response")
-		
+
 		time.Sleep(200 * time.Millisecond)
-		
+
 		result.StatusCode = http.StatusOK
 		result.Response = "This is a simulated response for testing purposes. The actual Mistral model is currently unavailable. This response allows testing of the copy and download functionality."
 		result.InputTokens = len(query) / 4
@@ -98,7 +98,7 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string, modelVer
 		result.TotalTokens = result.InputTokens + result.OutputTokens
 		result.NumTokens = result.TotalTokens
 		result.ResponseTime = time.Since(startTime).Milliseconds()
-		
+
 		return result, nil
 	}
 
@@ -152,12 +152,12 @@ func (c *MistralClient) executeQuery(ctx context.Context, query string, modelVer
 		if resp.StatusCode == http.StatusTooManyRequests {
 			return nil, myerrors.NewRateLimitError(string(models.Mistral))
 		}
-		
+
 		errorMsg := mistralResp.Error.Message
 		if errorMsg == "" {
 			errorMsg = fmt.Sprintf("API error with status code: %d", resp.StatusCode)
 		}
-		
+
 		return nil, myerrors.NewModelError(string(models.Mistral), resp.StatusCode, fmt.Errorf("%s", errorMsg), resp.StatusCode >= 500)
 	}
 
@@ -179,7 +179,7 @@ func (c *MistralClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
 	}
-	
+
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Mistral key, assuming service is available")
 		return true

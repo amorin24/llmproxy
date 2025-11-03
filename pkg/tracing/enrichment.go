@@ -26,7 +26,7 @@ func EnrichWithFallback(span trace.Span, fallbackOccurred bool, originalProvider
 	span.SetAttributes(
 		attribute.Bool("llm.fallback_occurred", fallbackOccurred),
 	)
-	
+
 	if fallbackOccurred {
 		span.SetAttributes(
 			attribute.String("llm.original_provider", originalProvider),
@@ -45,7 +45,7 @@ func EnrichWithRetry(span trace.Span, retryCount int, maxRetries int) {
 		attribute.Int("llm.max_retries", maxRetries),
 		attribute.Bool("llm.retried", retryCount > 0),
 	)
-	
+
 	if retryCount > 0 {
 		span.AddEvent("retry_occurred", trace.WithAttributes(
 			attribute.Int("attempt", retryCount),
@@ -58,7 +58,7 @@ func EnrichWithCache(span trace.Span, cacheHit bool, cacheKey string) {
 		attribute.Bool("llm.cache_hit", cacheHit),
 		attribute.String("llm.cache_key", cacheKey),
 	)
-	
+
 	if cacheHit {
 		span.AddEvent("cache_hit", trace.WithAttributes(
 			attribute.String("key", cacheKey),
@@ -88,7 +88,7 @@ func EnrichWithCircuitBreaker(span trace.Span, state string, failureCount int) {
 		attribute.String("llm.circuit_breaker_state", state),
 		attribute.Int("llm.circuit_breaker_failures", failureCount),
 	)
-	
+
 	if state == "open" {
 		span.AddEvent("circuit_breaker_open", trace.WithAttributes(
 			attribute.Int("failures", failureCount),
@@ -107,11 +107,11 @@ func EnrichWithRequestContext(span trace.Span, requestID, tenant string, maxCost
 	span.SetAttributes(
 		attribute.String("llm.request_id", requestID),
 	)
-	
+
 	if tenant != "" {
 		span.SetAttributes(attribute.String("llm.tenant", tenant))
 	}
-	
+
 	if maxCostUSD > 0 {
 		span.SetAttributes(attribute.Float64("llm.max_cost_usd", maxCostUSD))
 	}
@@ -121,7 +121,7 @@ func EnrichWithSLO(span trace.Span, sloViolated bool, metric string, target, act
 	span.SetAttributes(
 		attribute.Bool("llm.slo_violated", sloViolated),
 	)
-	
+
 	if sloViolated {
 		span.SetAttributes(
 			attribute.String("llm.slo_metric", metric),
@@ -140,7 +140,7 @@ func EnrichWithAnomaly(span trace.Span, anomalyDetected bool, actualCost, baseli
 	span.SetAttributes(
 		attribute.Bool("llm.cost_anomaly_detected", anomalyDetected),
 	)
-	
+
 	if anomalyDetected {
 		span.SetAttributes(
 			attribute.Float64("llm.cost_actual", actualCost),

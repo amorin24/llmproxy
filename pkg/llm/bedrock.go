@@ -50,7 +50,7 @@ type bedrockClaudeResponse struct {
 }
 
 type bedrockTitanRequest struct {
-	InputText string `json:"inputText"`
+	InputText            string `json:"inputText"`
 	TextGenerationConfig struct {
 		MaxTokenCount int     `json:"maxTokenCount"`
 		Temperature   float64 `json:"temperature,omitempty"`
@@ -75,10 +75,10 @@ type bedrockLlamaRequest struct {
 }
 
 type bedrockLlamaResponse struct {
-	Generation     string `json:"generation"`
-	PromptTokens   int    `json:"prompt_token_count"`
+	Generation      string `json:"generation"`
+	PromptTokens    int    `json:"prompt_token_count"`
 	GeneratedTokens int    `json:"generation_token_count"`
-	StopReason     string `json:"stop_reason"`
+	StopReason      string `json:"stop_reason"`
 }
 
 func (c *BedrockClient) Query(ctx context.Context, query string, modelVersion string) (*QueryResult, error) {

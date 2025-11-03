@@ -48,34 +48,34 @@ type EmbeddingService interface {
 }
 
 type SemanticCache struct {
-	embedder       EmbeddingService
-	store          map[string]*CacheEntry
-	lruList        []string // LRU eviction list
-	similarity     float64  // similarity threshold
-	maxSize        int
-	ttl            time.Duration
-	mu             sync.RWMutex
-	cleanupTicker  *time.Ticker
-	cleanupStop    chan struct{}
+	embedder      EmbeddingService
+	store         map[string]*CacheEntry
+	lruList       []string // LRU eviction list
+	similarity    float64  // similarity threshold
+	maxSize       int
+	ttl           time.Duration
+	mu            sync.RWMutex
+	cleanupTicker *time.Ticker
+	cleanupStop   chan struct{}
 }
 
 type CacheEntry struct {
-	Query       string
-	Embedding   []float64
-	Result      *llm.QueryResult
-	Cost        float64
-	Timestamp   time.Time
-	ExpiresAt   time.Time
-	HitCount    int
-	LastAccess  time.Time
+	Query      string
+	Embedding  []float64
+	Result     *llm.QueryResult
+	Cost       float64
+	Timestamp  time.Time
+	ExpiresAt  time.Time
+	HitCount   int
+	LastAccess time.Time
 }
 
 type SemanticCacheConfig struct {
-	Embedder          EmbeddingService
+	Embedder            EmbeddingService
 	SimilarityThreshold float64
-	MaxSize           int
-	TTL               time.Duration
-	CleanupInterval   time.Duration
+	MaxSize             int
+	TTL                 time.Duration
+	CleanupInterval     time.Duration
 }
 
 func NewSemanticCache(config SemanticCacheConfig) *SemanticCache {
@@ -140,7 +140,7 @@ func (c *SemanticCache) Get(ctx context.Context, query string) (*llm.QueryResult
 
 	if bestMatch != nil {
 		semanticCacheHits.Inc()
-		
+
 		c.mu.RUnlock()
 		c.mu.Lock()
 		bestMatch.HitCount++
@@ -150,11 +150,11 @@ func (c *SemanticCache) Get(ctx context.Context, query string) (*llm.QueryResult
 		c.mu.RLock()
 
 		logrus.WithFields(logrus.Fields{
-			"query":           query,
-			"cached_query":    bestMatch.Query,
-			"similarity":      bestSimilarity,
-			"hit_count":       bestMatch.HitCount,
-			"age_hours":       time.Since(bestMatch.Timestamp).Hours(),
+			"query":        query,
+			"cached_query": bestMatch.Query,
+			"similarity":   bestSimilarity,
+			"hit_count":    bestMatch.HitCount,
+			"age_hours":    time.Since(bestMatch.Timestamp).Hours(),
 		}).Debug("Semantic cache hit")
 
 		return bestMatch.Result, true
@@ -339,7 +339,7 @@ func NewSimpleEmbeddingService() *SimpleEmbeddingService {
 
 func (s *SimpleEmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float64, error) {
 	embedding := make([]float64, 128) // ASCII character space
-	
+
 	for _, char := range text {
 		if int(char) < len(embedding) {
 			embedding[int(char)]++

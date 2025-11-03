@@ -40,7 +40,7 @@ func NewCircuitBreaker(maxFailures int, timeout time.Duration) *CircuitBreaker {
 
 func (cb *CircuitBreaker) Call(fn func() error) error {
 	cb.mu.Lock()
-	
+
 	if cb.state == StateOpen {
 		if time.Since(cb.lastFailTime) > cb.timeout {
 			cb.state = StateHalfOpen
@@ -50,26 +50,26 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 			return ErrCircuitOpen
 		}
 	}
-	
+
 	cb.mu.Unlock()
-	
+
 	err := fn()
-	
+
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	if err != nil {
 		cb.failures++
 		cb.lastFailTime = time.Now()
-		
+
 		if cb.failures >= cb.maxFailures {
 			cb.state = StateOpen
 			logrus.WithField("failures", cb.failures).Warn("Circuit breaker opened")
 		}
-		
+
 		return err
 	}
-	
+
 	if cb.state == StateHalfOpen {
 		cb.state = StateClosed
 		cb.failures = 0
@@ -77,7 +77,7 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 	} else if cb.state == StateClosed {
 		cb.failures = 0
 	}
-	
+
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (cb *CircuitBreaker) GetState() State {
 func (cb *CircuitBreaker) Reset() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.state = StateClosed
 	cb.failures = 0
 	logrus.Info("Circuit breaker manually reset")
@@ -117,12 +117,12 @@ func NewCircuitBreakerManager(maxFailures int, timeout time.Duration) *CircuitBr
 func (m *CircuitBreakerManager) GetBreaker(model models.ModelType) *CircuitBreaker {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	breaker, exists := m.breakers[model]
 	if !exists {
 		return NewCircuitBreaker(5, 60*time.Second)
 	}
-	
+
 	return breaker
 }
 
@@ -144,10 +144,10 @@ func (m *CircuitBreakerManager) Reset(model models.ModelType) {
 func (m *CircuitBreakerManager) ResetAll() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	for _, breaker := range m.breakers {
 		breaker.Reset()
 	}
-	
+
 	logrus.Info("All circuit breakers reset")
 }

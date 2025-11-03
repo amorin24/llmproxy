@@ -69,8 +69,8 @@ func TestCostEstimator_EstimatePreCall(t *testing.T) {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 
-		expectedInputCost := (1000.0 / 1000.0) * 0.005
-		expectedOutputCost := (500.0 / 1000.0) * 0.015
+		expectedInputCost := 1.0 * 0.005
+		expectedOutputCost := 0.5 * 0.015
 		expectedTotalCost := expectedInputCost + expectedOutputCost
 
 		if estimate.EstimatedCostUSD != expectedTotalCost {
@@ -127,8 +127,8 @@ func TestCostEstimator_EstimatePostCall(t *testing.T) {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 
-		expectedInputCost := (1000.0 / 1000.0) * 0.005
-		expectedOutputCost := (500.0 / 1000.0) * 0.015
+		expectedInputCost := 1.0 * 0.005
+		expectedOutputCost := 0.5 * 0.015
 		expectedTotalCost := expectedInputCost + expectedOutputCost
 
 		if estimate.EstimatedCostUSD != expectedTotalCost {

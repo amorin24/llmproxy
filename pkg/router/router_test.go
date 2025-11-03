@@ -13,13 +13,13 @@ import (
 
 func TestRouteRequest(t *testing.T) {
 	testCases := []struct {
-		name           string
-		request        models.QueryRequest
+		name            string
+		request         models.QueryRequest
 		availableModels map[models.ModelType]bool
-		expectedModel  models.ModelType
-		expectError    bool
-		errorType      error
-		useContext     bool // Whether to use a canceled context
+		expectedModel   models.ModelType
+		expectError     bool
+		errorType       error
+		useContext      bool // Whether to use a canceled context
 	}{
 		{
 			name: "User specified model available",
@@ -191,13 +191,13 @@ func TestRouteRequest(t *testing.T) {
 
 func TestFallbackOnError(t *testing.T) {
 	testCases := []struct {
-		name           string
-		originalModel  models.ModelType
-		request        models.QueryRequest
+		name            string
+		originalModel   models.ModelType
+		request         models.QueryRequest
 		availableModels map[models.ModelType]bool
-		inputError     error
-		expectError    bool
-		errorType      error
+		inputError      error
+		expectError     bool
+		errorType       error
 	}{
 		{
 			name:          "Fallback on retryable error",
@@ -361,7 +361,7 @@ func TestFallbackOnError(t *testing.T) {
 				if !r.isModelAvailable(fallbackModel) {
 					t.Errorf("Fallback model %s should be available", fallbackModel)
 				}
-				
+
 				if tc.name == "Fallback with specific model preference" && fallbackModel != tc.request.Model {
 					t.Errorf("Expected fallback to user preferred model %s, got %s", tc.request.Model, fallbackModel)
 				}
@@ -372,16 +372,16 @@ func TestFallbackOnError(t *testing.T) {
 
 func TestGetAvailability(t *testing.T) {
 	r := NewRouter()
-	
+
 	r.SetTestMode(true)
-	
+
 	r.SetModelAvailability(models.OpenAI, true)
 	r.SetModelAvailability(models.Gemini, false)
 	r.SetModelAvailability(models.Mistral, true)
 	r.SetModelAvailability(models.Claude, false)
-	
+
 	status := r.GetAvailability()
-	
+
 	if !status.OpenAI {
 		t.Errorf("Expected OpenAI to be available")
 	}
@@ -398,14 +398,14 @@ func TestGetAvailability(t *testing.T) {
 
 func TestGetRandomAvailableModel(t *testing.T) {
 	r := NewRouter()
-	
+
 	r.SetTestMode(true)
-	
+
 	_, err := r.getRandomAvailableModel()
 	if err == nil {
 		t.Errorf("Expected error when no models available")
 	}
-	
+
 	r.SetModelAvailability(models.OpenAI, true)
 	model, err := r.getRandomAvailableModel()
 	if err != nil {
@@ -414,7 +414,7 @@ func TestGetRandomAvailableModel(t *testing.T) {
 	if model != models.OpenAI {
 		t.Errorf("Expected model %s, got %s", models.OpenAI, model)
 	}
-	
+
 	r.SetModelAvailability(models.Mistral, true)
 	model, err = r.getRandomAvailableModel()
 	if err != nil {
@@ -428,31 +428,31 @@ func TestGetRandomAvailableModel(t *testing.T) {
 func TestGetAvailableModelsExcept(t *testing.T) {
 	r := NewRouter()
 	r.SetTestMode(true)
-	
+
 	availableModels := r.getAvailableModelsExcept(models.OpenAI)
 	if len(availableModels) != 0 {
 		t.Errorf("Expected 0 available models, got %d", len(availableModels))
 	}
-	
+
 	r.SetModelAvailability(models.OpenAI, true)
 	availableModels = r.getAvailableModelsExcept(models.OpenAI)
 	if len(availableModels) != 0 {
 		t.Errorf("Expected 0 available models after exclusion, got %d", len(availableModels))
 	}
-	
+
 	r.SetModelAvailability(models.Gemini, true)
 	availableModels = r.getAvailableModelsExcept(models.OpenAI)
 	if len(availableModels) != 1 || availableModels[0] != models.Gemini {
 		t.Errorf("Expected only Gemini to be available after excluding OpenAI")
 	}
-	
+
 	r.SetModelAvailability(models.Mistral, true)
 	r.SetModelAvailability(models.Claude, true)
 	availableModels = r.getAvailableModelsExcept(models.OpenAI)
 	if len(availableModels) != 3 {
 		t.Errorf("Expected 3 available models after exclusion, got %d", len(availableModels))
 	}
-	
+
 	for _, model := range availableModels {
 		if model == models.OpenAI {
 			t.Errorf("Excluded model should not be in the result")
@@ -462,11 +462,11 @@ func TestGetAvailableModelsExcept(t *testing.T) {
 
 func TestRouteByTaskType(t *testing.T) {
 	testCases := []struct {
-		name           string
-		taskType       models.TaskType
+		name            string
+		taskType        models.TaskType
 		availableModels map[models.ModelType]bool
-		expectedModel  models.ModelType
-		expectError    bool
+		expectedModel   models.ModelType
+		expectError     bool
 	}{
 		{
 			name:     "Text generation with OpenAI available",
@@ -567,33 +567,33 @@ func TestRouteByTaskType(t *testing.T) {
 func TestConcurrentAccess(t *testing.T) {
 	r := NewRouter()
 	r.SetTestMode(true)
-	
+
 	r.SetModelAvailability(models.OpenAI, false)
 	r.SetModelAvailability(models.Gemini, false)
 	r.SetModelAvailability(models.Mistral, false)
 	r.SetModelAvailability(models.Claude, false)
-	
+
 	r.SetModelAvailability(models.OpenAI, true)
 	r.SetModelAvailability(models.Gemini, true)
-	
+
 	numGoroutines := 50 // Reduced to avoid flakiness
-	
+
 	var testMutex sync.Mutex
-	
+
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines) // Only test readers, handle writers separately
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			defer wg.Done()
-			
+
 			status := r.GetAvailability()
 			testMutex.Lock()
 			if !status.OpenAI || !status.Gemini {
 				t.Errorf("Expected OpenAI and Gemini to be available")
 			}
 			testMutex.Unlock()
-			
+
 			model, err := r.getRandomAvailableModel()
 			testMutex.Lock()
 			if err != nil {
@@ -605,23 +605,23 @@ func TestConcurrentAccess(t *testing.T) {
 			testMutex.Unlock()
 		}()
 	}
-	
+
 	wg.Wait()
-	
+
 	wg.Add(2) // Just two writers for Mistral and Claude
-	
+
 	go func() {
 		defer wg.Done()
 		r.SetModelAvailability(models.Mistral, true)
 	}()
-	
+
 	go func() {
 		defer wg.Done()
 		r.SetModelAvailability(models.Claude, true)
 	}()
-	
+
 	wg.Wait()
-	
+
 	status := r.GetAvailability()
 	if !status.OpenAI || !status.Gemini || !status.Mistral || !status.Claude {
 		t.Errorf("Expected all models to be available after concurrent operations")
@@ -630,27 +630,27 @@ func TestConcurrentAccess(t *testing.T) {
 
 func TestEnsureAvailabilityUpdated(t *testing.T) {
 	r := NewRouter()
-	
+
 	r.availabilityTTL = 10 * time.Millisecond
-	
+
 	if !r.lastUpdated.IsZero() {
 		t.Errorf("Expected lastUpdated to be zero initially")
 	}
-	
+
 	r.ensureAvailabilityUpdated()
 	if r.lastUpdated.IsZero() {
 		t.Errorf("Expected lastUpdated to be set after first call")
 	}
-	
+
 	firstUpdate := r.lastUpdated
-	
+
 	r.ensureAvailabilityUpdated()
 	if r.lastUpdated != firstUpdate {
 		t.Errorf("Expected lastUpdated to remain unchanged after immediate second call")
 	}
-	
+
 	time.Sleep(20 * time.Millisecond)
-	
+
 	r.ensureAvailabilityUpdated()
 	if r.lastUpdated == firstUpdate {
 		t.Errorf("Expected lastUpdated to change after TTL expired")

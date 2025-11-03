@@ -10,7 +10,7 @@ import (
 
 func createTestCatalog(t *testing.T) string {
 	t.Helper()
-	
+
 	catalogJSON := `{
 		"version": "1.0.0",
 		"last_updated": "2024-01-01T00:00:00Z",
@@ -61,30 +61,30 @@ func createTestCatalog(t *testing.T) string {
 			"next_validation_due": "2024-02-01T00:00:00Z"
 		}
 	}`
-	
+
 	tmpDir := t.TempDir()
 	catalogPath := filepath.Join(tmpDir, "test-catalog.json")
-	
+
 	if err := os.WriteFile(catalogPath, []byte(catalogJSON), 0644); err != nil {
 		t.Fatalf("Failed to create test catalog: %v", err)
 	}
-	
+
 	return catalogPath
 }
 
 func TestNewCatalogLoader(t *testing.T) {
 	t.Run("Successfully loads valid catalog", func(t *testing.T) {
 		catalogPath := createTestCatalog(t)
-		
+
 		loader, err := NewCatalogLoader(catalogPath)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		
+
 		if loader == nil {
 			t.Fatal("Expected loader to be non-nil")
 		}
-		
+
 		if loader.catalog == nil {
 			t.Fatal("Expected catalog to be loaded")
 		}
@@ -100,11 +100,11 @@ func TestNewCatalogLoader(t *testing.T) {
 	t.Run("Fails with invalid JSON", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		catalogPath := filepath.Join(tmpDir, "invalid.json")
-		
+
 		if err := os.WriteFile(catalogPath, []byte("{invalid json}"), 0644); err != nil {
 			t.Fatalf("Failed to create invalid catalog: %v", err)
 		}
-		
+
 		_, err := NewCatalogLoader(catalogPath)
 		if err == nil {
 			t.Fatal("Expected error for invalid JSON")
@@ -124,11 +124,11 @@ func TestCatalogLoader_GetPricing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		
+
 		if pricing.InputPer1kTokens != 0.005 {
 			t.Errorf("Expected input price 0.005, got %f", pricing.InputPer1kTokens)
 		}
-		
+
 		if pricing.OutputPer1kTokens != 0.015 {
 			t.Errorf("Expected output price 0.015, got %f", pricing.OutputPer1kTokens)
 		}
@@ -161,15 +161,15 @@ func TestCatalogLoader_GetProviderPricing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		
+
 		if len(pricing) != 2 {
 			t.Errorf("Expected 2 models, got %d", len(pricing))
 		}
-		
+
 		if _, ok := pricing["gpt-4o"]; !ok {
 			t.Error("Expected gpt-4o to be present")
 		}
-		
+
 		if _, ok := pricing["gpt-3.5-turbo"]; !ok {
 			t.Error("Expected gpt-3.5-turbo to be present")
 		}
@@ -191,24 +191,24 @@ func TestCatalogLoader_GetAllProviders(t *testing.T) {
 	}
 
 	providers := loader.GetAllProviders()
-	
+
 	if len(providers) != 4 {
 		t.Errorf("Expected 4 providers, got %d", len(providers))
 	}
-	
+
 	expectedProviders := map[string]bool{
 		"openai":  false,
 		"gemini":  false,
 		"mistral": false,
 		"claude":  false,
 	}
-	
+
 	for _, provider := range providers {
 		if _, ok := expectedProviders[provider]; ok {
 			expectedProviders[provider] = true
 		}
 	}
-	
+
 	for provider, found := range expectedProviders {
 		if !found {
 			t.Errorf("Expected provider %s to be present", provider)
@@ -240,7 +240,7 @@ func TestCatalogLoader_GetLastUpdated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	
+
 	if lastUpdated.IsZero() {
 		t.Error("Expected non-zero time")
 	}
@@ -274,25 +274,25 @@ func TestCatalogLoader_Reload(t *testing.T) {
 			"next_validation_due": "2024-03-01T00:00:00Z"
 		}
 	}`
-	
+
 	if err := os.WriteFile(catalogPath, []byte(updatedJSON), 0644); err != nil {
 		t.Fatalf("Failed to update catalog: %v", err)
 	}
-	
+
 	if err := loader.Reload(); err != nil {
 		t.Fatalf("Expected no error on reload, got %v", err)
 	}
-	
+
 	version := loader.GetVersion()
 	if version != "2.0.0" {
 		t.Errorf("Expected version 2.0.0 after reload, got %s", version)
 	}
-	
+
 	pricing, err := loader.GetPricing("openai", "gpt-4o")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	
+
 	if pricing.InputPer1kTokens != 0.010 {
 		t.Errorf("Expected updated input price 0.010, got %f", pricing.InputPer1kTokens)
 	}
@@ -328,21 +328,25 @@ func TestCatalogLoader_ConcurrentAccess(t *testing.T) {
 	}
 
 	done := make(chan bool)
-	
+
 	for i := 0; i < 10; i++ {
 		go func() {
 			for j := 0; j < 100; j++ {
-				loader.GetPricing("openai", "gpt-4o")
-				loader.GetProviderPricing("openai")
+				if _, err := loader.GetPricing("openai", "gpt-4o"); err != nil {
+					t.Errorf("GetPricing failed: %v", err)
+				}
+				if _, err := loader.GetProviderPricing("openai"); err != nil {
+					t.Errorf("GetProviderPricing failed: %v", err)
+				}
 				loader.GetAllProviders()
 				loader.GetVersion()
 			}
 			done <- true
 		}()
 	}
-	
+
 	for i := 0; i < 10; i++ {
 		<-done
 	}
-	
+
 }

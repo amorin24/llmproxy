@@ -10,13 +10,13 @@ import (
 )
 
 type Template struct {
-	Name        string            `yaml:"name"`
-	Prompt      string            `yaml:"prompt"`
-	Model       models.ModelType  `yaml:"model"`
-	MaxTokens   int               `yaml:"max_tokens"`
-	Temperature float64           `yaml:"temperature"`
-	Variables   []string          `yaml:"variables"`
-	Description string            `yaml:"description"`
+	Name        string           `yaml:"name"`
+	Prompt      string           `yaml:"prompt"`
+	Model       models.ModelType `yaml:"model"`
+	MaxTokens   int              `yaml:"max_tokens"`
+	Temperature float64          `yaml:"temperature"`
+	Variables   []string         `yaml:"variables"`
+	Description string           `yaml:"description"`
 }
 
 type TemplateConfig struct {

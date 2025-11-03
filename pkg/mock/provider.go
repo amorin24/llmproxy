@@ -44,23 +44,23 @@ func (p *Provider) WithFailureRate(rate float64) *Provider {
 
 func (p *Provider) Query(ctx context.Context, query string, modelVersion string) (*MockResult, error) {
 	p.requestCount++
-	
+
 	time.Sleep(time.Duration(p.latencyMs) * time.Millisecond)
-	
+
 	if p.failureRate > 0 && float64(p.requestCount%10)/10.0 < p.failureRate {
 		return nil, fmt.Errorf("mock provider failure (simulated)")
 	}
-	
+
 	var response string
 	if p.deterministicMode {
 		response = p.generateDeterministicResponse(query)
 	} else {
 		response = p.generateRandomResponse(query)
 	}
-	
+
 	inputTokens := len(strings.Fields(query))
 	outputTokens := len(strings.Fields(response))
-	
+
 	return &MockResult{
 		Response:     response,
 		InputTokens:  inputTokens,
@@ -70,22 +70,22 @@ func (p *Provider) Query(ctx context.Context, query string, modelVersion string)
 
 func (p *Provider) generateDeterministicResponse(query string) string {
 	queryLower := strings.ToLower(query)
-	
+
 	responses := map[string]string{
-		"hello":              "Hello! I'm a mock LLM provider. How can I help you today?",
-		"what is ai":         "Artificial Intelligence (AI) is the simulation of human intelligence by machines, particularly computer systems.",
-		"explain quantum":    "Quantum computing uses quantum-mechanical phenomena like superposition and entanglement to perform computations.",
-		"summarize":          "This is a mock summary of the provided text. In a real implementation, this would analyze and condense the content.",
-		"translate":          "This is a mock translation. In a real implementation, this would translate the text to the target language.",
+		"hello":                    "Hello! I'm a mock LLM provider. How can I help you today?",
+		"what is ai":               "Artificial Intelligence (AI) is the simulation of human intelligence by machines, particularly computer systems.",
+		"explain quantum":          "Quantum computing uses quantum-mechanical phenomena like superposition and entanglement to perform computations.",
+		"summarize":                "This is a mock summary of the provided text. In a real implementation, this would analyze and condense the content.",
+		"translate":                "This is a mock translation. In a real implementation, this would translate the text to the target language.",
 		"what is machine learning": "Machine learning is a subset of AI that enables systems to learn and improve from experience without being explicitly programmed.",
 	}
-	
+
 	for keyword, response := range responses {
 		if strings.Contains(queryLower, keyword) {
 			return fmt.Sprintf("[MOCK %s] %s", p.name, response)
 		}
 	}
-	
+
 	return fmt.Sprintf("[MOCK %s] This is a deterministic response to your query: '%s'. The response is consistent for the same input.", p.name, query)
 }
 
@@ -96,7 +96,7 @@ func (p *Provider) generateRandomResponse(query string) string {
 		"[%s Mock] Processing query: '%s'. This is a test response.",
 		"Response from mock %s: I understand you asked about '%s'. This is a simulated answer.",
 	}
-	
+
 	idx := p.requestCount % len(responses)
 	return fmt.Sprintf(responses[idx], p.name, query)
 }
@@ -117,14 +117,14 @@ func NewMockFactory(deterministicMode bool) *MockFactory {
 	factory := &MockFactory{
 		providers: make(map[models.ModelType]*Provider),
 	}
-	
+
 	factory.providers[models.OpenAI] = NewProvider("OpenAI", deterministicMode)
 	factory.providers[models.Gemini] = NewProvider("Gemini", deterministicMode)
 	factory.providers[models.Mistral] = NewProvider("Mistral", deterministicMode)
 	factory.providers[models.Claude] = NewProvider("Claude", deterministicMode)
 	factory.providers[models.VertexAI] = NewProvider("VertexAI", deterministicMode)
 	factory.providers[models.Bedrock] = NewProvider("Bedrock", deterministicMode)
-	
+
 	return factory
 }
 

@@ -11,7 +11,7 @@ import (
 
 func CreateTestRequest(t *testing.T, method, path string, body interface{}) *http.Request {
 	var bodyReader io.Reader
-	
+
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
@@ -19,16 +19,16 @@ func CreateTestRequest(t *testing.T, method, path string, body interface{}) *htt
 		}
 		bodyReader = bytes.NewBuffer(bodyBytes)
 	}
-	
+
 	req, err := http.NewRequest(method, path, bodyReader)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
-	
+
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	return req
 }
 

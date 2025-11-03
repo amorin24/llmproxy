@@ -38,14 +38,14 @@ type HealthChecker struct {
 }
 
 type HealthCheck struct {
-	Name        string
-	Type        CheckType
-	CheckFunc   func(ctx context.Context) error
-	Timeout     time.Duration
-	LastCheck   time.Time
-	LastStatus  bool
-	LastError   error
-	mu          sync.RWMutex
+	Name       string
+	Type       CheckType
+	CheckFunc  func(ctx context.Context) error
+	Timeout    time.Duration
+	LastCheck  time.Time
+	LastStatus bool
+	LastError  error
+	mu         sync.RWMutex
 }
 
 type HealthStatus struct {
@@ -210,7 +210,6 @@ func (hc *HealthChecker) GetStatus() map[string]CheckStatus {
 
 	return status
 }
-
 
 func DatabaseCheck(pingFunc func(ctx context.Context) error) func(ctx context.Context) error {
 	return func(ctx context.Context) error {

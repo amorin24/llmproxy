@@ -6,9 +6,9 @@ import (
 )
 
 type Sanitizer struct {
-	apiKeyPatterns  []*regexp.Regexp
-	piiPatterns     []*regexp.Regexp
-	redactedMarker  string
+	apiKeyPatterns []*regexp.Regexp
+	piiPatterns    []*regexp.Regexp
+	redactedMarker string
 }
 
 func NewSanitizer() *Sanitizer {
@@ -33,21 +33,21 @@ func NewSanitizer() *Sanitizer {
 
 func (s *Sanitizer) SanitizeAPIKeys(message string) string {
 	sanitized := message
-	
+
 	for _, pattern := range s.apiKeyPatterns {
 		sanitized = pattern.ReplaceAllString(sanitized, s.redactedMarker)
 	}
-	
+
 	return sanitized
 }
 
 func (s *Sanitizer) SanitizePII(message string) string {
 	sanitized := message
-	
+
 	for _, pattern := range s.piiPatterns {
 		sanitized = pattern.ReplaceAllString(sanitized, s.redactedMarker)
 	}
-	
+
 	return sanitized
 }
 
@@ -59,7 +59,7 @@ func (s *Sanitizer) Sanitize(message string) string {
 
 func (s *Sanitizer) SanitizeMap(data map[string]interface{}) map[string]interface{} {
 	sanitized := make(map[string]interface{})
-	
+
 	for key, value := range data {
 		switch v := value.(type) {
 		case string:
@@ -70,7 +70,7 @@ func (s *Sanitizer) SanitizeMap(data map[string]interface{}) map[string]interfac
 			sanitized[key] = value
 		}
 	}
-	
+
 	return sanitized
 }
 
@@ -81,20 +81,20 @@ func (s *Sanitizer) SanitizeFields(data map[string]interface{}) map[string]inter
 		"authorization", "auth",
 		"access_key", "secret_key",
 	}
-	
+
 	sanitized := make(map[string]interface{})
-	
+
 	for key, value := range data {
 		lowerKey := strings.ToLower(key)
 		isSensitive := false
-		
+
 		for _, sensitive := range sensitiveFields {
 			if strings.Contains(lowerKey, sensitive) {
 				isSensitive = true
 				break
 			}
 		}
-		
+
 		if isSensitive {
 			sanitized[key] = s.redactedMarker
 		} else {
@@ -108,7 +108,7 @@ func (s *Sanitizer) SanitizeFields(data map[string]interface{}) map[string]inter
 			}
 		}
 	}
-	
+
 	return sanitized
 }
 

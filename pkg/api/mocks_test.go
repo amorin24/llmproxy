@@ -49,25 +49,6 @@ func (m *MockRouter) SetModelAvailability(model models.ModelType, available bool
 func (m *MockRouter) UpdateAvailability() {
 }
 
-func (m *MockRouter) ensureAvailabilityUpdated() {
-}
-
-func (m *MockRouter) isModelAvailable(model models.ModelType) bool {
-	return true
-}
-
-func (m *MockRouter) routeByTaskType(taskType models.TaskType) (models.ModelType, error) {
-	return models.OpenAI, nil
-}
-
-func (m *MockRouter) getRandomAvailableModel() (models.ModelType, error) {
-	return models.OpenAI, nil
-}
-
-func (m *MockRouter) getAvailableModelsExcept(excludeModel models.ModelType) []models.ModelType {
-	return []models.ModelType{models.Gemini, models.Mistral, models.Claude}
-}
-
 type MockCache struct {
 	mutex   sync.RWMutex
 	getFunc func(req models.QueryRequest) (models.QueryResponse, bool)
@@ -77,7 +58,7 @@ type MockCache struct {
 func (m *MockCache) Get(req models.QueryRequest) (models.QueryResponse, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if m.getFunc != nil {
 		return m.getFunc(req)
 	}
@@ -87,7 +68,7 @@ func (m *MockCache) Get(req models.QueryRequest) (models.QueryResponse, bool) {
 func (m *MockCache) Set(req models.QueryRequest, resp models.QueryResponse) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if m.setFunc != nil {
 		m.setFunc(req, resp)
 	}

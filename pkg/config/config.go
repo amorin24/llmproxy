@@ -27,20 +27,20 @@ const (
 )
 
 var (
-	ErrInvalidAPIKey      = errors.New("invalid API key format")
+	ErrInvalidAPIKey        = errors.New("invalid API key format")
 	ErrEncryptionKeyMissing = errors.New("encryption key not set")
-	ErrDecryptionFailed   = errors.New("failed to decrypt API key")
+	ErrDecryptionFailed     = errors.New("failed to decrypt API key")
 )
 
 var (
 	config     *Config
 	configOnce sync.Once
-	
+
 	openAIKeyPattern  = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,}$`)
 	geminiKeyPattern  = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,}$`)
 	mistralKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,}$`)
 	claudeKeyPattern  = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,}$`)
-	
+
 	testKeyPattern = regexp.MustCompile(`^test_[a-zA-Z0-9_-]{8,}$`)
 )
 
@@ -56,33 +56,33 @@ func (k APIKey) String() string {
 	if k.Value == "" {
 		return "[not set]"
 	}
-	
+
 	if !k.Encrypted {
 		if len(k.Value) <= 8 {
 			return "****"
 		}
 		return k.Value[:4] + "..." + k.Value[len(k.Value)-4:]
 	}
-	
+
 	return fmt.Sprintf("[encrypted:%s:v%d]", k.Provider, k.Version)
 }
 
 type Config struct {
-	OpenAIAPIKey      APIKey
-	GeminiAPIKey      APIKey
-	MistralAPIKey     APIKey
-	ClaudeAPIKey      APIKey
-	Port              string
-	CacheEnabled      bool
-	CacheTTL          int  // Time to live in seconds
-	KeyRotationHours  int  // Hours between key rotations
-	HTTPTimeout       int  // HTTP client timeout in seconds
-	MaxIdleConns      int  // Maximum number of idle connections
+	OpenAIAPIKey        APIKey
+	GeminiAPIKey        APIKey
+	MistralAPIKey       APIKey
+	ClaudeAPIKey        APIKey
+	Port                string
+	CacheEnabled        bool
+	CacheTTL            int // Time to live in seconds
+	KeyRotationHours    int // Hours between key rotations
+	HTTPTimeout         int // HTTP client timeout in seconds
+	MaxIdleConns        int // Maximum number of idle connections
 	MaxIdleConnsPerHost int // Maximum number of idle connections per host
-	IdleConnTimeout   int  // Idle connection timeout in seconds
-	lastKeyCheck      time.Time
-	encryptionKey     []byte
-	mutex             sync.RWMutex
+	IdleConnTimeout     int // Idle connection timeout in seconds
+	lastKeyCheck        time.Time
+	encryptionKey       []byte
+	mutex               sync.RWMutex
 }
 
 func GetConfig() *Config {
@@ -90,7 +90,7 @@ func GetConfig() *Config {
 		godotenv.Load()
 
 		encryptionKey := os.Getenv(encryptionKeyEnvVar)
-		
+
 		config = &Config{
 			OpenAIAPIKey: APIKey{
 				Value:       os.Getenv("OPENAI_API_KEY"),
@@ -120,24 +120,24 @@ func GetConfig() *Config {
 				LastRotated: time.Now(),
 				Encrypted:   false,
 			},
-			Port:               getEnvWithDefault("PORT", "8080"),
-			CacheEnabled:       getEnvAsBool("CACHE_ENABLED", true),
-			CacheTTL:           getEnvAsInt("CACHE_TTL", 300),
-			KeyRotationHours:   getEnvAsInt("KEY_ROTATION_HOURS", defaultKeyRotationInterval),
-			HTTPTimeout:        getEnvAsInt("HTTP_TIMEOUT", 30),
-			MaxIdleConns:       getEnvAsInt("MAX_IDLE_CONNS", 100),
+			Port:                getEnvWithDefault("PORT", "8080"),
+			CacheEnabled:        getEnvAsBool("CACHE_ENABLED", true),
+			CacheTTL:            getEnvAsInt("CACHE_TTL", 300),
+			KeyRotationHours:    getEnvAsInt("KEY_ROTATION_HOURS", defaultKeyRotationInterval),
+			HTTPTimeout:         getEnvAsInt("HTTP_TIMEOUT", 30),
+			MaxIdleConns:        getEnvAsInt("MAX_IDLE_CONNS", 100),
 			MaxIdleConnsPerHost: getEnvAsInt("MAX_IDLE_CONNS_PER_HOST", 20),
-			IdleConnTimeout:    getEnvAsInt("IDLE_CONN_TIMEOUT", 90),
-			lastKeyCheck:       time.Now(),
+			IdleConnTimeout:     getEnvAsInt("IDLE_CONN_TIMEOUT", 90),
+			lastKeyCheck:        time.Now(),
 		}
-		
+
 		if encryptionKey != "" {
 			config.encryptionKey = []byte(encryptionKey)
 			config.encryptAPIKeys()
 		} else {
 			logrus.Warn("No encryption key set. API keys will not be encrypted.")
 		}
-		
+
 		config.validateAPIKeys()
 
 		logrus.WithFields(logrus.Fields{
@@ -151,7 +151,7 @@ func GetConfig() *Config {
 	if config != nil && config.KeyRotationHours > 0 {
 		config.mutex.Lock()
 		defer config.mutex.Unlock()
-		
+
 		if time.Since(config.lastKeyCheck).Hours() >= float64(config.KeyRotationHours) {
 			config.checkForKeyRotation()
 			config.lastKeyCheck = time.Now()
@@ -164,9 +164,9 @@ func GetConfig() *Config {
 func (c *Config) GetAPIKey(provider string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	var apiKey APIKey
-	
+
 	switch strings.ToLower(provider) {
 	case "openai":
 		apiKey = c.OpenAIAPIKey
@@ -179,20 +179,20 @@ func (c *Config) GetAPIKey(provider string) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown provider: %s", provider)
 	}
-	
+
 	if !apiKey.Encrypted {
 		return apiKey.Value, nil
 	}
-	
+
 	if c.encryptionKey == nil || len(c.encryptionKey) == 0 {
 		return "", ErrEncryptionKeyMissing
 	}
-	
+
 	decrypted, err := decrypt(apiKey.Value, c.encryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
 	}
-	
+
 	return decrypted, nil
 }
 
@@ -200,10 +200,10 @@ func (c *Config) SetAPIKey(provider, value string) error {
 	if err := c.validateAPIKeyFormat(provider, value); err != nil {
 		return err
 	}
-	
+
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	apiKey := APIKey{
 		Value:       value,
 		Provider:    provider,
@@ -211,7 +211,7 @@ func (c *Config) SetAPIKey(provider, value string) error {
 		LastRotated: time.Now(),
 		Encrypted:   false,
 	}
-	
+
 	if c.encryptionKey != nil && len(c.encryptionKey) > 0 {
 		encrypted, err := encrypt(value, c.encryptionKey)
 		if err != nil {
@@ -220,7 +220,7 @@ func (c *Config) SetAPIKey(provider, value string) error {
 		apiKey.Value = encrypted
 		apiKey.Encrypted = true
 	}
-	
+
 	switch strings.ToLower(provider) {
 	case "openai":
 		c.OpenAIAPIKey = apiKey
@@ -233,7 +233,7 @@ func (c *Config) SetAPIKey(provider, value string) error {
 	default:
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
-	
+
 	return nil
 }
 
@@ -241,12 +241,12 @@ func (c *Config) RotateAPIKey(provider, newValue string) error {
 	if err := c.validateAPIKeyFormat(provider, newValue); err != nil {
 		return err
 	}
-	
+
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	var currentKey *APIKey
-	
+
 	switch strings.ToLower(provider) {
 	case "openai":
 		currentKey = &c.OpenAIAPIKey
@@ -259,12 +259,12 @@ func (c *Config) RotateAPIKey(provider, newValue string) error {
 	default:
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
-	
+
 	currentKey.Version++
 	currentKey.LastRotated = time.Now()
 	currentKey.Value = newValue
 	currentKey.Encrypted = false
-	
+
 	if c.encryptionKey != nil && len(c.encryptionKey) > 0 {
 		encrypted, err := encrypt(newValue, c.encryptionKey)
 		if err != nil {
@@ -273,12 +273,12 @@ func (c *Config) RotateAPIKey(provider, newValue string) error {
 		currentKey.Value = encrypted
 		currentKey.Encrypted = true
 	}
-	
+
 	logrus.WithFields(logrus.Fields{
 		"provider": provider,
 		"version":  currentKey.Version,
 	}).Info("API key rotated")
-	
+
 	return nil
 }
 
@@ -286,28 +286,28 @@ func (c *Config) encryptAPIKeys() {
 	if c.encryptionKey == nil || len(c.encryptionKey) == 0 {
 		return
 	}
-	
+
 	if c.OpenAIAPIKey.Value != "" && !c.OpenAIAPIKey.Encrypted {
 		if encrypted, err := encrypt(c.OpenAIAPIKey.Value, c.encryptionKey); err == nil {
 			c.OpenAIAPIKey.Value = encrypted
 			c.OpenAIAPIKey.Encrypted = true
 		}
 	}
-	
+
 	if c.GeminiAPIKey.Value != "" && !c.GeminiAPIKey.Encrypted {
 		if encrypted, err := encrypt(c.GeminiAPIKey.Value, c.encryptionKey); err == nil {
 			c.GeminiAPIKey.Value = encrypted
 			c.GeminiAPIKey.Encrypted = true
 		}
 	}
-	
+
 	if c.MistralAPIKey.Value != "" && !c.MistralAPIKey.Encrypted {
 		if encrypted, err := encrypt(c.MistralAPIKey.Value, c.encryptionKey); err == nil {
 			c.MistralAPIKey.Value = encrypted
 			c.MistralAPIKey.Encrypted = true
 		}
 	}
-	
+
 	if c.ClaudeAPIKey.Value != "" && !c.ClaudeAPIKey.Encrypted {
 		if encrypted, err := encrypt(c.ClaudeAPIKey.Value, c.encryptionKey); err == nil {
 			c.ClaudeAPIKey.Value = encrypted
@@ -322,19 +322,19 @@ func (c *Config) validateAPIKeys() {
 			logrus.Warnf("OpenAI API key validation failed: %v", err)
 		}
 	}
-	
+
 	if c.GeminiAPIKey.Value != "" && !c.GeminiAPIKey.Encrypted {
 		if err := c.validateAPIKeyFormat("gemini", c.GeminiAPIKey.Value); err != nil {
 			logrus.Warnf("Gemini API key validation failed: %v", err)
 		}
 	}
-	
+
 	if c.MistralAPIKey.Value != "" && !c.MistralAPIKey.Encrypted {
 		if err := c.validateAPIKeyFormat("mistral", c.MistralAPIKey.Value); err != nil {
 			logrus.Warnf("Mistral API key validation failed: %v", err)
 		}
 	}
-	
+
 	if c.ClaudeAPIKey.Value != "" && !c.ClaudeAPIKey.Encrypted {
 		if err := c.validateAPIKeyFormat("claude", c.ClaudeAPIKey.Value); err != nil {
 			logrus.Warnf("Claude API key validation failed: %v", err)
@@ -346,16 +346,16 @@ func (c *Config) validateAPIKeyFormat(provider, key string) error {
 	if key == "" {
 		return nil // Empty keys are allowed (provider will be unavailable)
 	}
-	
+
 	if len(key) < minAPIKeyLength {
 		return fmt.Errorf("%w: key too short", ErrInvalidAPIKey)
 	}
-	
+
 	if testKeyPattern.MatchString(key) {
 		logrus.Infof("Using test key for %s", provider)
 		return nil
 	}
-	
+
 	switch strings.ToLower(provider) {
 	case "openai":
 		if !openAIKeyPattern.MatchString(key) {
@@ -376,16 +376,16 @@ func (c *Config) validateAPIKeyFormat(provider, key string) error {
 	default:
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
-	
+
 	return nil
 }
 
 func (c *Config) checkForKeyRotation() {
 	providers := []string{"openai", "gemini", "mistral", "claude"}
-	
+
 	for _, provider := range providers {
 		var key APIKey
-		
+
 		switch provider {
 		case "openai":
 			key = c.OpenAIAPIKey
@@ -396,17 +396,17 @@ func (c *Config) checkForKeyRotation() {
 		case "claude":
 			key = c.ClaudeAPIKey
 		}
-		
+
 		if key.Value != "" && time.Since(key.LastRotated).Hours() >= float64(c.KeyRotationHours) {
 			logrus.WithFields(logrus.Fields{
-				"provider":      provider,
+				"provider":        provider,
 				"current_version": key.Version,
-				"last_rotated":  key.LastRotated,
+				"last_rotated":    key.LastRotated,
 			}).Info("API key due for rotation")
-			
+
 			rotatedKeyEnv := fmt.Sprintf("%s_API_KEY_V%d", strings.ToUpper(provider), key.Version+1)
 			newKey := os.Getenv(rotatedKeyEnv)
-			
+
 			if newKey != "" && newKey != key.Value {
 				if err := c.RotateAPIKey(provider, newKey); err != nil {
 					logrus.WithError(err).Warnf("Failed to rotate %s API key", provider)
@@ -421,17 +421,17 @@ func encrypt(plaintext string, key []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", err
 	}
-	
+
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", err
 	}
-	
+
 	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
@@ -441,30 +441,29 @@ func decrypt(encrypted string, key []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", err
 	}
-	
+
 	if len(ciphertext) < gcm.NonceSize() {
 		return "", errors.New("ciphertext too short")
 	}
-	
+
 	nonce, ciphertext := ciphertext[:gcm.NonceSize()], ciphertext[gcm.NonceSize():]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return "", err
 	}
-	
+
 	return string(plaintext), nil
 }
-
 
 func getEnvWithDefault(key, defaultValue string) string {
 	value := os.Getenv(key)
