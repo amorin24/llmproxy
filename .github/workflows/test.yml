@@ -68,8 +68,14 @@ jobs:
       with:
         go-version: '1.25.x'
 
+    - name: Verify environment
+      run: |
+        go version
+        pwd
+        ls -la .golangci.yml || echo ".golangci.yml not found"
+
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: latest
-        args: --timeout=5m
+        version: v1.64.8
+        args: --timeout=5m -v
