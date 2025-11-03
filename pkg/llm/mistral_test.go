@@ -23,17 +23,17 @@ func TestMistralClient_GetModelType(t *testing.T) {
 
 func TestMistralClient_Query(t *testing.T) {
 	testCases := []struct {
-		name        string
-		apiKey      string
-		statusCode  int
+		name         string
+		apiKey       string
+		statusCode   int
 		responseBody string
-		expectError bool
-		errorType   error
+		expectError  bool
+		errorType    error
 	}{
 		{
-			name:        "Successful query",
-			apiKey:      "test-key",
-			statusCode:  http.StatusOK,
+			name:       "Successful query",
+			apiKey:     "test-key",
+			statusCode: http.StatusOK,
 			responseBody: `{
 				"choices": [
 					{
@@ -58,35 +58,35 @@ func TestMistralClient_Query(t *testing.T) {
 			errorType:   myerrors.ErrAPIKeyMissing,
 		},
 		{
-			name:        "Rate limit error",
-			apiKey:      "test-key",
-			statusCode:  http.StatusTooManyRequests,
+			name:         "Rate limit error",
+			apiKey:       "test-key",
+			statusCode:   http.StatusTooManyRequests,
 			responseBody: `{"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}}`,
-			expectError: true,
-			errorType:   myerrors.ErrRateLimit,
+			expectError:  true,
+			errorType:    myerrors.ErrRateLimit,
 		},
 		{
-			name:        "Server error",
-			apiKey:      "test-key",
-			statusCode:  http.StatusInternalServerError,
+			name:         "Server error",
+			apiKey:       "test-key",
+			statusCode:   http.StatusInternalServerError,
 			responseBody: `{"error": {"message": "Server error", "type": "server_error"}}`,
-			expectError: true,
+			expectError:  true,
 		},
 		{
-			name:        "Empty response",
-			apiKey:      "test-key",
-			statusCode:  http.StatusOK,
+			name:         "Empty response",
+			apiKey:       "test-key",
+			statusCode:   http.StatusOK,
 			responseBody: `{"choices": []}`,
-			expectError: true,
-			errorType:   myerrors.ErrEmptyResponse,
+			expectError:  true,
+			errorType:    myerrors.ErrEmptyResponse,
 		},
 		{
-			name:        "Invalid JSON response",
-			apiKey:      "test-key",
-			statusCode:  http.StatusOK,
+			name:         "Invalid JSON response",
+			apiKey:       "test-key",
+			statusCode:   http.StatusOK,
 			responseBody: `{invalid json}`,
-			expectError: true,
-			errorType:   myerrors.ErrInvalidResponse,
+			expectError:  true,
+			errorType:    myerrors.ErrInvalidResponse,
 		},
 	}
 
@@ -98,22 +98,22 @@ func TestMistralClient_Query(t *testing.T) {
 						if tc.apiKey == "" {
 							return nil, errors.New("no API key")
 						}
-						
+
 						if req.Header.Get("Authorization") != "Bearer "+tc.apiKey {
 							t.Errorf("Expected Authorization header 'Bearer %s', got '%s'", tc.apiKey, req.Header.Get("Authorization"))
 						}
-						
+
 						if req.Header.Get("Content-Type") != "application/json" {
 							t.Errorf("Expected Content-Type header 'application/json', got '%s'", req.Header.Get("Content-Type"))
 						}
-						
+
 						if tc.responseBody == `{invalid json}` {
 							return &http.Response{
 								StatusCode: tc.statusCode,
 								Body:       ioutil.NopCloser(strings.NewReader(tc.responseBody)),
 							}, nil
 						}
-						
+
 						return &http.Response{
 							StatusCode: tc.statusCode,
 							Body:       ioutil.NopCloser(strings.NewReader(tc.responseBody)),
@@ -122,19 +122,19 @@ func TestMistralClient_Query(t *testing.T) {
 				},
 				Timeout: 30 * time.Second,
 			}
-			
+
 			client := &MistralClient{
 				apiKey: tc.apiKey,
 				client: httpClient,
 			}
-			
+
 			result, err := client.Query(context.Background(), "Test query", "mistral-medium")
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("Expected error, got nil")
 				}
-				
+
 				if tc.errorType != nil {
 					var modelErr *myerrors.ModelError
 					if errors.As(err, &modelErr) {
@@ -149,28 +149,28 @@ func TestMistralClient_Query(t *testing.T) {
 				if err != nil {
 					t.Errorf("Expected no error, got %v", err)
 				}
-				
+
 				if result == nil {
 					t.Errorf("Expected result, got nil")
 				} else {
 					var mistralResp MistralResponse
 					json.Unmarshal([]byte(tc.responseBody), &mistralResp)
-					
+
 					expectedResponse := mistralResp.Choices[0].Message.Content
 					if result.Response != expectedResponse {
 						t.Errorf("Expected response '%s', got '%s'", expectedResponse, result.Response)
 					}
-					
+
 					expectedInputTokens := mistralResp.Usage.PromptTokens
 					if result.InputTokens != expectedInputTokens {
 						t.Errorf("Expected input tokens %d, got %d", expectedInputTokens, result.InputTokens)
 					}
-					
+
 					expectedOutputTokens := mistralResp.Usage.CompletionTokens
 					if result.OutputTokens != expectedOutputTokens {
 						t.Errorf("Expected output tokens %d, got %d", expectedOutputTokens, result.OutputTokens)
 					}
-					
+
 					expectedTotalTokens := mistralResp.Usage.TotalTokens
 					if result.TotalTokens != expectedTotalTokens {
 						t.Errorf("Expected total tokens %d, got %d", expectedTotalTokens, result.TotalTokens)
@@ -183,10 +183,10 @@ func TestMistralClient_Query(t *testing.T) {
 
 func TestMistralClient_CheckAvailability(t *testing.T) {
 	testCases := []struct {
-		name        string
-		apiKey      string
-		statusCode  int
-		expected    bool
+		name       string
+		apiKey     string
+		statusCode int
+		expected   bool
 	}{
 		{
 			name:       "Available",
@@ -201,9 +201,9 @@ func TestMistralClient_CheckAvailability(t *testing.T) {
 			expected:   false,
 		},
 		{
-			name:       "No API key",
-			apiKey:     "",
-			expected:   false,
+			name:     "No API key",
+			apiKey:   "",
+			expected: false,
 		},
 	}
 
@@ -215,7 +215,7 @@ func TestMistralClient_CheckAvailability(t *testing.T) {
 						if tc.apiKey == "" {
 							return nil, errors.New("no API key")
 						}
-						
+
 						return &http.Response{
 							StatusCode: tc.statusCode,
 							Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
@@ -224,14 +224,14 @@ func TestMistralClient_CheckAvailability(t *testing.T) {
 				},
 				Timeout: 30 * time.Second,
 			}
-			
+
 			client := &MistralClient{
 				apiKey: tc.apiKey,
 				client: httpClient,
 			}
-			
+
 			result := client.CheckAvailability()
-			
+
 			if result != tc.expected {
 				t.Errorf("Expected %v, got %v", tc.expected, result)
 			}

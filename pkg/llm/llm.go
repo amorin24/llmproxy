@@ -91,15 +91,15 @@ func ValidateModelVersion(modelType models.ModelType, version string) string {
 }
 
 type QueryResult struct {
-	Response        string
-	ResponseTime    int64
-	StatusCode      int
-	InputTokens     int
-	OutputTokens    int
-	TotalTokens     int
-	NumTokens       int // Deprecated: Use TotalTokens instead
-	NumRetries      int
-	Error           error
+	Response     string
+	ResponseTime int64
+	StatusCode   int
+	InputTokens  int
+	OutputTokens int
+	TotalTokens  int
+	NumTokens    int // Deprecated: Use TotalTokens instead
+	NumRetries   int
+	Error        error
 }
 
 type Client interface {
@@ -126,6 +126,7 @@ var Factory = func(modelType models.ModelType) (Client, error) {
 		return nil, myerrors.NewModelError(string(modelType), 400, myerrors.ErrUnavailable, false)
 	}
 }
+
 func EstimateTokenCount(text string) int {
 	if text == "" {
 		return 0

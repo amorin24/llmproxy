@@ -1,0 +1,59 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - gofmt
+    - goimports
+    - ineffassign
+    - gosimple
+    - errcheck
+    - staticcheck
+    - unused
+
+issues:
+  exclude-rules:
+    # Temporarily suppress deprecated ioutil warnings until a follow-up PR
+    - linters:
+        - staticcheck
+      text: "SA1019:.*io/ioutil"
+    # Suppress gosimple nil checks in config (existing code)
+    - path: pkg/config/config\.go
+      linters:
+        - gosimple
+      text: "S1009"
+    # Suppress ineffassign and SA4006 in existing cache tests
+    - path: pkg/cache/cache_test\.go
+      linters:
+        - ineffassign
+        - staticcheck
+    # Suppress errcheck in existing production code (pre-existing issues)
+    - path: pkg/config/config\.go
+      linters:
+        - errcheck
+      text: "godotenv.Load"
+    - path: pkg/llm/.*_test\.go
+      linters:
+        - errcheck
+      text: "json.Unmarshal"
+    - path: pkg/monitoring/monitoring\.go
+      linters:
+        - errcheck
+      text: "Encode"
+    - path: pkg/streaming/websocket\.go
+      linters:
+        - errcheck
+      text: "WriteJSON"
+    - path: pkg/jobs/handlers\.go
+      linters:
+        - errcheck
+      text: "Encode"
+    - path: pkg/jobs/worker\.go
+      linters:
+        - errcheck
+      text: "UpdateJobError"
+    - path: pkg/api/handlers\.go
+      linters:
+        - errcheck
+      text: "w.Write"

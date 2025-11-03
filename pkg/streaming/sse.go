@@ -21,11 +21,11 @@ type StreamRequest struct {
 }
 
 type StreamChunk struct {
-	Token       string  `json:"token,omitempty"`
-	CostUSD     float64 `json:"cost_usd,omitempty"`
-	Done        bool    `json:"done,omitempty"`
+	Token        string  `json:"token,omitempty"`
+	CostUSD      float64 `json:"cost_usd,omitempty"`
+	Done         bool    `json:"done,omitempty"`
 	TotalCostUSD float64 `json:"total_cost_usd,omitempty"`
-	Error       string  `json:"error,omitempty"`
+	Error        string  `json:"error,omitempty"`
 }
 
 type SSEHandler struct {
@@ -100,7 +100,7 @@ func (h *SSEHandler) StreamQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := pricing.MapModelTypeToProvider(selectedModel)
-	
+
 	totalCost := 0.0
 	if result.InputTokens > 0 && result.OutputTokens > 0 {
 		costEstimate, err := h.costEstimator.EstimatePostCall(provider, modelVersion, result.InputTokens, result.OutputTokens)
@@ -120,34 +120,34 @@ func (h *SSEHandler) StreamQuery(w http.ResponseWriter, r *http.Request) {
 
 func (h *SSEHandler) streamResponse(w http.ResponseWriter, flusher http.Flusher, response string, totalCost float64) {
 	words := splitIntoWords(response)
-	
+
 	costPerWord := 0.0
 	if len(words) > 0 {
 		costPerWord = totalCost / float64(len(words))
 	}
-	
+
 	accumulatedCost := 0.0
-	
+
 	for _, word := range words {
 		accumulatedCost += costPerWord
-		
+
 		chunk := StreamChunk{
 			Token:   word,
 			CostUSD: accumulatedCost,
 		}
-		
+
 		data, _ := json.Marshal(chunk)
 		fmt.Fprintf(w, "data: %s\n\n", data)
 		flusher.Flush()
-		
+
 		time.Sleep(50 * time.Millisecond)
 	}
-	
+
 	finalChunk := StreamChunk{
 		Done:         true,
 		TotalCostUSD: totalCost,
 	}
-	
+
 	data, _ := json.Marshal(finalChunk)
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
@@ -158,11 +158,11 @@ func (h *SSEHandler) sendError(w http.ResponseWriter, flusher http.Flusher, erro
 		Error: errorMsg,
 		Done:  true,
 	}
-	
+
 	data, _ := json.Marshal(chunk)
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
-	
+
 	logrus.WithField("error", errorMsg).Error("Stream error")
 }
 
@@ -170,10 +170,10 @@ func splitIntoWords(text string) []string {
 	if text == "" {
 		return []string{}
 	}
-	
+
 	words := []string{}
 	currentWord := ""
-	
+
 	for _, char := range text {
 		if char == ' ' || char == '\n' || char == '\t' {
 			if currentWord != "" {
@@ -184,10 +184,10 @@ func splitIntoWords(text string) []string {
 			currentWord += string(char)
 		}
 	}
-	
+
 	if currentWord != "" {
 		words = append(words, currentWord)
 	}
-	
+
 	return words
 }

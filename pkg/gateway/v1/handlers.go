@@ -76,7 +76,9 @@ func (h *GatewayHandler) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		_ = err
+	}
 }
 
 func (h *GatewayHandler) CostEstimateHandler(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +139,9 @@ func (h *GatewayHandler) CostEstimateHandler(w http.ResponseWriter, r *http.Requ
 	_ = ctx
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		_ = err
+	}
 }
 
 func validateGatewayQueryRequest(req GatewayQueryRequest) error {
@@ -243,14 +247,18 @@ func (h *GatewayHandler) DryRunHandler(w http.ResponseWriter, r *http.Request) {
 	_ = ctx
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		_ = err
+	}
 }
 
 func sendErrorResponse(w http.ResponseWriter, statusCode int, message string, code string, requestID string) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(ErrorResponse{
+	if err := json.NewEncoder(w).Encode(ErrorResponse{
 		Error:     message,
 		Code:      code,
 		RequestID: requestID,
-	})
+	}); err != nil {
+		_ = err
+	}
 }

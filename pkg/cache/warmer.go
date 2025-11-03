@@ -36,23 +36,23 @@ var (
 )
 
 type CacheWarmer struct {
-	cache          *SemanticCache
-	patterns       []QueryPattern
-	schedule       time.Duration
-	minFrequency   int
-	ticker         *time.Ticker
-	stopCh         chan struct{}
-	mu             sync.RWMutex
-	queryExecutor  QueryExecutor
+	cache         *SemanticCache
+	patterns      []QueryPattern
+	schedule      time.Duration
+	minFrequency  int
+	ticker        *time.Ticker
+	stopCh        chan struct{}
+	mu            sync.RWMutex
+	queryExecutor QueryExecutor
 }
 
 type QueryPattern struct {
 	Query        string
 	Model        models.ModelType
 	ModelVersion string
-	Frequency    int       // How often this query is seen
+	Frequency    int // How often this query is seen
 	LastWarmed   time.Time
-	Priority     int       // Higher priority = warmed more frequently
+	Priority     int // Higher priority = warmed more frequently
 }
 
 type QueryExecutor interface {
@@ -194,7 +194,7 @@ func (w *CacheWarmer) warmCache() {
 		go func(p QueryPattern) {
 			defer wg.Done()
 
-			semaphore <- struct{}{} // Acquire
+			semaphore <- struct{}{}        // Acquire
 			defer func() { <-semaphore }() // Release
 
 			w.warmPattern(p)
@@ -215,7 +215,7 @@ func (w *CacheWarmer) shouldWarm(pattern QueryPattern) bool {
 	}
 
 	timeSinceWarm := time.Since(pattern.LastWarmed)
-	
+
 	warmInterval := w.schedule
 	if pattern.Priority > 5 {
 		warmInterval = w.schedule / 2
@@ -239,7 +239,7 @@ func (w *CacheWarmer) warmPattern(pattern QueryPattern) {
 		"priority":  pattern.Priority,
 	}).Debug("Warming cache pattern")
 
-	if result, found := w.cache.Get(ctx, pattern.Query); found {
+	if _, found := w.cache.Get(ctx, pattern.Query); found {
 		logrus.WithField("query", pattern.Query).Debug("Pattern already in cache, skipping")
 		w.updateLastWarmed(pattern.Query, pattern.Model)
 		return

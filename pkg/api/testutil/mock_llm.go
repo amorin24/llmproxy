@@ -18,11 +18,11 @@ func (m *MockLLMClient) Query(ctx context.Context, query string, modelVersion st
 	if m.QueryFunc != nil {
 		return m.QueryFunc(ctx, query, modelVersion)
 	}
-	
+
 	if m.QueryError != nil {
 		return nil, m.QueryError
 	}
-	
+
 	return &llm.QueryResult{
 		Response:     "Mock response for: " + query,
 		StatusCode:   200,

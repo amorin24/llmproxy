@@ -57,14 +57,14 @@ type Quota struct {
 }
 
 type QuotaUsage struct {
-	RequestsThisHour  int
-	RequestsThisDay   int
-	CostThisHour      float64
-	CostThisDay       float64
-	CostThisMonth     float64
-	LastResetHour     time.Time
-	LastResetDay      time.Time
-	LastResetMonth    time.Time
+	RequestsThisHour int
+	RequestsThisDay  int
+	CostThisHour     float64
+	CostThisDay      float64
+	CostThisMonth    float64
+	LastResetHour    time.Time
+	LastResetDay     time.Time
+	LastResetMonth   time.Time
 }
 
 type TokenBucket struct {
@@ -83,11 +83,11 @@ type SlidingWindow struct {
 }
 
 type RateLimiterConfig struct {
-	Strategy           LimitStrategy
-	DefaultQuota       *Quota
-	BurstAllowance     int
-	TokenRefillRate    float64
-	SlidingWindowSize  time.Duration
+	Strategy          LimitStrategy
+	DefaultQuota      *Quota
+	BurstAllowance    int
+	TokenRefillRate   float64
+	SlidingWindowSize time.Duration
 }
 
 func NewRateLimiter(config RateLimiterConfig) *RateLimiter {

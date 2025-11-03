@@ -15,7 +15,7 @@ func isRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	var modelErr *myerrors.ModelError
 	if errors.As(err, &modelErr) {
 		if errors.Is(modelErr.Unwrap(), myerrors.ErrRateLimit) ||
@@ -25,91 +25,91 @@ func isRetryableError(err error) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 func QueryWithTimeout(client Client, query string, modelVersion string, timeout time.Duration) (*QueryResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	return client.Query(ctx, query, modelVersion)
 }
 
 func TestEstimateTokens(t *testing.T) {
 	testCases := []struct {
-		name          string
-		result        *QueryResult
-		query         string
-		response      string
-		expectedInput int
+		name           string
+		result         *QueryResult
+		query          string
+		response       string
+		expectedInput  int
 		expectedOutput int
-		expectedTotal int
+		expectedTotal  int
 	}{
 		{
-			name: "Empty query and response",
-			result: &QueryResult{},
-			query: "",
-			response: "",
-			expectedInput: 0,
+			name:           "Empty query and response",
+			result:         &QueryResult{},
+			query:          "",
+			response:       "",
+			expectedInput:  0,
 			expectedOutput: 0,
-			expectedTotal: 0,
+			expectedTotal:  0,
 		},
 		{
-			name: "Short query and response",
-			result: &QueryResult{},
-			query: "Hello, how are you?",
-			response: "I'm doing well, thank you for asking!",
-			expectedInput: 5,  // Approximate token count
-			expectedOutput: 8, // Approximate token count
-			expectedTotal: 13, // Sum of input and output
+			name:           "Short query and response",
+			result:         &QueryResult{},
+			query:          "Hello, how are you?",
+			response:       "I'm doing well, thank you for asking!",
+			expectedInput:  5,  // Approximate token count
+			expectedOutput: 8,  // Approximate token count
+			expectedTotal:  13, // Sum of input and output
 		},
 		{
-			name: "Longer query and response",
-			result: &QueryResult{},
-			query: "Can you explain the concept of machine learning in simple terms? I'm trying to understand how it works.",
-			response: "Machine learning is a branch of artificial intelligence that allows computers to learn from data without being explicitly programmed. Instead of writing specific instructions, you provide examples, and the computer learns patterns from these examples to make predictions or decisions.",
-			expectedInput: 20,  // Approximate token count
+			name:           "Longer query and response",
+			result:         &QueryResult{},
+			query:          "Can you explain the concept of machine learning in simple terms? I'm trying to understand how it works.",
+			response:       "Machine learning is a branch of artificial intelligence that allows computers to learn from data without being explicitly programmed. Instead of writing specific instructions, you provide examples, and the computer learns patterns from these examples to make predictions or decisions.",
+			expectedInput:  20, // Approximate token count
 			expectedOutput: 40, // Approximate token count
-			expectedTotal: 60,  // Sum of input and output
+			expectedTotal:  60, // Sum of input and output
 		},
 		{
 			name: "Existing token counts should not be overwritten",
 			result: &QueryResult{
-				InputTokens: 100,
+				InputTokens:  100,
 				OutputTokens: 200,
-				TotalTokens: 300,
+				TotalTokens:  300,
 			},
-			query: "Hello",
-			response: "Hi there",
-			expectedInput: 100, // Should keep original value
+			query:          "Hello",
+			response:       "Hi there",
+			expectedInput:  100, // Should keep original value
 			expectedOutput: 200, // Should keep original value
-			expectedTotal: 300, // Should keep original value
+			expectedTotal:  300, // Should keep original value
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			EstimateTokens(tc.result, tc.query, tc.response)
-			
+
 			if tc.result.InputTokens != tc.expectedInput && tc.name != "Existing token counts should not be overwritten" {
 				if tc.result.InputTokens < 1 && len(tc.query) > 0 {
 					t.Errorf("Expected InputTokens to be at least 1, got %d", tc.result.InputTokens)
 				}
 			}
-			
+
 			if tc.result.OutputTokens != tc.expectedOutput && tc.name != "Existing token counts should not be overwritten" {
 				if tc.result.OutputTokens < 1 && len(tc.response) > 0 {
 					t.Errorf("Expected OutputTokens to be at least 1, got %d", tc.result.OutputTokens)
 				}
 			}
-			
+
 			if tc.result.TotalTokens != tc.expectedTotal && tc.name != "Existing token counts should not be overwritten" {
 				if tc.result.TotalTokens < 1 && (len(tc.query) > 0 || len(tc.response) > 0) {
 					t.Errorf("Expected TotalTokens to be at least 1, got %d", tc.result.TotalTokens)
 				}
-				
-				if tc.result.TotalTokens != tc.result.InputTokens + tc.result.OutputTokens {
+
+				if tc.result.TotalTokens != tc.result.InputTokens+tc.result.OutputTokens {
 					t.Errorf("Expected TotalTokens to be sum of InputTokens and OutputTokens, got %d != %d + %d",
 						tc.result.TotalTokens, tc.result.InputTokens, tc.result.OutputTokens)
 				}
@@ -128,9 +128,9 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 
 func TestIsRetryableError(t *testing.T) {
 	testCases := []struct {
-		name      string
-		err       error
-		expected  bool
+		name     string
+		err      error
+		expected bool
 	}{
 		{
 			name:     "Nil error",
@@ -222,7 +222,7 @@ func TestFactory(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			client, err := Factory(tc.modelType)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("Expected error, got nil")
@@ -243,8 +243,8 @@ func TestFactory(t *testing.T) {
 }
 
 type MockClient struct {
-	GetModelTypeFunc func() models.ModelType
-	QueryFunc        func(ctx context.Context, query string, modelVersion string) (*QueryResult, error)
+	GetModelTypeFunc      func() models.ModelType
+	QueryFunc             func(ctx context.Context, query string, modelVersion string) (*QueryResult, error)
 	CheckAvailabilityFunc func() bool
 }
 
@@ -298,9 +298,9 @@ func TestQueryWithTimeout(t *testing.T) {
 					}
 				},
 			}
-			
+
 			result, err := QueryWithTimeout(mockClient, "test query", "default-version", tc.timeout)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("Expected error, got nil")

@@ -38,14 +38,14 @@ type HealthChecker struct {
 }
 
 type HealthCheck struct {
-	Name        string
-	Type        CheckType
-	CheckFunc   func(ctx context.Context) error
-	Timeout     time.Duration
-	LastCheck   time.Time
-	LastStatus  bool
-	LastError   error
-	mu          sync.RWMutex
+	Name       string
+	Type       CheckType
+	CheckFunc  func(ctx context.Context) error
+	Timeout    time.Duration
+	LastCheck  time.Time
+	LastStatus bool
+	LastError  error
+	mu         sync.RWMutex
 }
 
 type HealthStatus struct {
@@ -195,21 +195,21 @@ func (hc *HealthChecker) GetStatus() map[string]CheckStatus {
 	status := make(map[string]CheckStatus)
 	for name, check := range hc.checks {
 		check.mu.RLock()
-		status[name] = CheckStatus{
+		checkStatus := CheckStatus{
 			Name:      check.Name,
 			Type:      check.Type,
 			Healthy:   check.LastStatus,
 			LastCheck: check.LastCheck,
 		}
 		if check.LastError != nil {
-			status[name].Error = check.LastError.Error()
+			checkStatus.Error = check.LastError.Error()
 		}
+		status[name] = checkStatus
 		check.mu.RUnlock()
 	}
 
 	return status
 }
-
 
 func DatabaseCheck(pingFunc func(ctx context.Context) error) func(ctx context.Context) error {
 	return func(ctx context.Context) error {

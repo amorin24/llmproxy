@@ -39,7 +39,7 @@ func (w *JobWorker) Start() {
 	for i := 0; i < w.maxWorkers; i++ {
 		go w.worker(i)
 	}
-	
+
 	logrus.WithField("max_workers", w.maxWorkers).Info("Job worker started")
 }
 
@@ -60,7 +60,7 @@ func (w *JobWorker) SubmitJob(jobID string) {
 
 func (w *JobWorker) worker(id int) {
 	logrus.WithField("worker_id", id).Debug("Worker started")
-	
+
 	for {
 		select {
 		case jobID := <-w.jobQueue:
@@ -78,28 +78,28 @@ func (w *JobWorker) processJob(jobID string) {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to get job")
 		return
 	}
-	
+
 	logrus.WithFields(logrus.Fields{
 		"job_id": jobID,
 		"query":  job.Query,
 		"model":  job.Model,
 	}).Info("Processing job")
-	
+
 	if err := w.store.UpdateJobStatus(jobID, JobStatusRunning); err != nil {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to update job status")
 		return
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	
+
 	req := models.QueryRequest{
 		Query:        job.Query,
 		Model:        models.ModelType(job.Model),
 		ModelVersion: job.ModelVersion,
 		RequestID:    job.RequestID,
 	}
-	
+
 	selectedModel, err := w.router.RouteRequest(ctx, req)
 	if err != nil {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to route request")
@@ -107,7 +107,7 @@ func (w *JobWorker) processJob(jobID string) {
 		w.sendWebhook(job, nil, err)
 		return
 	}
-	
+
 	client, err := llm.Factory(selectedModel)
 	if err != nil {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to create client")
@@ -115,9 +115,9 @@ func (w *JobWorker) processJob(jobID string) {
 		w.sendWebhook(job, nil, err)
 		return
 	}
-	
+
 	modelVersion := llm.ValidateModelVersion(selectedModel, job.ModelVersion)
-	
+
 	result, err := client.Query(ctx, job.Query, modelVersion)
 	if err != nil {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to query LLM")
@@ -125,30 +125,30 @@ func (w *JobWorker) processJob(jobID string) {
 		w.sendWebhook(job, nil, err)
 		return
 	}
-	
+
 	provider := pricing.MapModelTypeToProvider(selectedModel)
 	actualCost := 0.0
-	
+
 	if result.InputTokens > 0 && result.OutputTokens > 0 {
 		costEstimate, err := w.costEstimator.EstimatePostCall(provider, modelVersion, result.InputTokens, result.OutputTokens)
 		if err == nil {
 			actualCost = costEstimate.EstimatedCostUSD
 		}
 	}
-	
+
 	if err := w.store.UpdateJobResult(jobID, result.Response, actualCost, result.InputTokens, result.OutputTokens, provider); err != nil {
 		logrus.WithError(err).WithField("job_id", jobID).Error("Failed to update job result")
 		return
 	}
-	
+
 	logrus.WithFields(logrus.Fields{
-		"job_id":      jobID,
-		"provider":    provider,
-		"cost":        actualCost,
-		"input_tokens": result.InputTokens,
+		"job_id":        jobID,
+		"provider":      provider,
+		"cost":          actualCost,
+		"input_tokens":  result.InputTokens,
 		"output_tokens": result.OutputTokens,
 	}).Info("Job completed successfully")
-	
+
 	w.sendWebhook(job, result, nil)
 }
 
@@ -156,12 +156,12 @@ func (w *JobWorker) sendWebhook(job *Job, result *llm.QueryResult, err error) {
 	if job.CallbackURL == "" {
 		return
 	}
-	
+
 	payload := map[string]interface{}{
 		"job_id": job.ID,
 		"status": string(job.Status),
 	}
-	
+
 	if result != nil {
 		payload["result"] = result.Response
 		payload["actual_cost_usd"] = job.ActualCostUSD
@@ -169,23 +169,23 @@ func (w *JobWorker) sendWebhook(job *Job, result *llm.QueryResult, err error) {
 		payload["output_tokens"] = result.OutputTokens
 		payload["provider"] = job.Provider
 	}
-	
+
 	if err != nil {
 		payload["error"] = err.Error()
 	}
-	
+
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		
+
 		req, err := http.NewRequestWithContext(ctx, "POST", job.CallbackURL, nil)
 		if err != nil {
 			logrus.WithError(err).WithField("job_id", job.ID).Error("Failed to create webhook request")
 			return
 		}
-		
+
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -193,18 +193,18 @@ func (w *JobWorker) sendWebhook(job *Job, result *llm.QueryResult, err error) {
 			return
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			logrus.WithFields(logrus.Fields{
-				"job_id":      job.ID,
+				"job_id":       job.ID,
 				"callback_url": job.CallbackURL,
-				"status_code": resp.StatusCode,
+				"status_code":  resp.StatusCode,
 			}).Info("Webhook delivered successfully")
 		} else {
 			logrus.WithFields(logrus.Fields{
-				"job_id":      job.ID,
+				"job_id":       job.ID,
 				"callback_url": job.CallbackURL,
-				"status_code": resp.StatusCode,
+				"status_code":  resp.StatusCode,
 			}).Warn("Webhook delivery failed")
 		}
 	}()

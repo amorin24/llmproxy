@@ -42,8 +42,8 @@ type vertexAIRequest struct {
 }
 
 type vertexAIContent struct {
-	Role  string              `json:"role"`
-	Parts []vertexAIPartText  `json:"parts"`
+	Role  string             `json:"role"`
+	Parts []vertexAIPartText `json:"parts"`
 }
 
 type vertexAIPartText struct {

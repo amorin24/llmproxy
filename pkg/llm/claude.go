@@ -24,10 +24,10 @@ type ClaudeClient struct {
 }
 
 type ClaudeRequest struct {
-	Model       string  `json:"model"`
+	Model       string          `json:"model"`
 	Messages    []ClaudeMessage `json:"messages"`
-	Temperature float64 `json:"temperature"`
-	MaxTokens   int     `json:"max_tokens"`
+	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens"`
 }
 
 type ClaudeMessage struct {
@@ -41,8 +41,8 @@ type ClaudeResponse struct {
 		Text string `json:"text"`
 		Type string `json:"type"`
 	} `json:"content"`
-	Model     string `json:"model"`
-	Usage     struct {
+	Model string `json:"model"`
+	Usage struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`
 	} `json:"usage"`
@@ -91,9 +91,9 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string, modelVers
 
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Claude key, returning simulated response")
-		
+
 		time.Sleep(350 * time.Millisecond)
-		
+
 		result.StatusCode = http.StatusOK
 		result.Response = "This is a simulated response for testing purposes. The actual Claude model is currently unavailable. This response allows testing of the copy and download functionality."
 		result.InputTokens = len(query) / 4
@@ -101,7 +101,7 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string, modelVers
 		result.TotalTokens = result.InputTokens + result.OutputTokens
 		result.NumTokens = result.TotalTokens
 		result.ResponseTime = time.Since(startTime).Milliseconds()
-		
+
 		return result, nil
 	}
 
@@ -156,12 +156,12 @@ func (c *ClaudeClient) executeQuery(ctx context.Context, query string, modelVers
 		if resp.StatusCode == http.StatusTooManyRequests {
 			return nil, myerrors.NewRateLimitError(string(models.Claude))
 		}
-		
+
 		errorMsg := claudeResp.Error.Message
 		if errorMsg == "" {
 			errorMsg = fmt.Sprintf("API error with status code: %d", resp.StatusCode)
 		}
-		
+
 		return nil, myerrors.NewModelError(string(models.Claude), resp.StatusCode, fmt.Errorf("%s", errorMsg), resp.StatusCode >= 500)
 	}
 
@@ -183,7 +183,7 @@ func (c *ClaudeClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
 	}
-	
+
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test Claude key, assuming service is available")
 		return true

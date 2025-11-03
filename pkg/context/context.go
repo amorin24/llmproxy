@@ -9,13 +9,13 @@ import (
 
 type RequestContext struct {
 	RequestID string
-	
+
 	StartTime time.Time
-	
+
 	Tenant string
-	
+
 	MaxCostUSD *float64
-	
+
 	Context context.Context
 }
 

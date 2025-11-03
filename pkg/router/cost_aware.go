@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/amorin24/llmproxy/pkg/models"
 	"github.com/amorin24/llmproxy/pkg/pricing"
@@ -45,15 +44,15 @@ const (
 )
 
 type CostAwareRouter struct {
-	router         *Router
-	catalogLoader  *pricing.CatalogLoader
-	qualityScores  map[string]float64 // provider -> score (0.0 to 1.0)
-	latencyP95     map[string]float64 // provider -> p95 latency in seconds
-	strategy       RoutingStrategy
-	costWeight     float64
-	latencyWeight  float64
-	qualityWeight  float64
-	mu             sync.RWMutex
+	router        *Router
+	catalogLoader *pricing.CatalogLoader
+	qualityScores map[string]float64 // provider -> score (0.0 to 1.0)
+	latencyP95    map[string]float64 // provider -> p95 latency in seconds
+	strategy      RoutingStrategy
+	costWeight    float64
+	latencyWeight float64
+	qualityWeight float64
+	mu            sync.RWMutex
 }
 
 type ProviderScore struct {
@@ -81,7 +80,7 @@ func NewCostAwareRouter(config CostAwareRouterConfig) *CostAwareRouter {
 	}
 
 	costWeight, latencyWeight, qualityWeight := getStrategyWeights(config.Strategy)
-	
+
 	if config.CostWeight > 0 {
 		costWeight = config.CostWeight
 	}
@@ -119,7 +118,16 @@ func (r *CostAwareRouter) SelectProvider(ctx context.Context, req models.QueryRe
 	availability := r.router.GetAvailability()
 	availableProviders := []models.ModelType{}
 
-	for provider, available := range availability {
+	providerMap := map[string]bool{
+		"openai":    availability.OpenAI,
+		"gemini":    availability.Gemini,
+		"mistral":   availability.Mistral,
+		"claude":    availability.Claude,
+		"vertex_ai": availability.VertexAI,
+		"bedrock":   availability.Bedrock,
+	}
+
+	for provider, available := range providerMap {
 		if available {
 			modelType := stringToModelType(provider)
 			if modelType != "" {
@@ -192,7 +200,7 @@ func (r *CostAwareRouter) calculateProviderScore(modelType models.ModelType, inp
 	defer r.mu.RUnlock()
 
 	provider := pricing.MapModelTypeToProvider(modelType)
-	
+
 	score := &ProviderScore{
 		Provider: provider,
 		Model:    modelType,
@@ -201,7 +209,7 @@ func (r *CostAwareRouter) calculateProviderScore(modelType models.ModelType, inp
 	estimator := pricing.NewCostEstimator(r.catalogLoader)
 	modelVersion := pricing.GetDefaultModelVersion(modelType)
 	costEstimate, err := estimator.EstimatePreCall(provider, modelVersion, inputTokens, expectedOutputTokens)
-	
+
 	if err == nil {
 		score.EstimatedCost = costEstimate.EstimatedCostUSD
 		score.CostScore = 1.0 - min(costEstimate.EstimatedCostUSD, 1.0)
@@ -233,7 +241,7 @@ func (r *CostAwareRouter) UpdateQualityScore(provider string, score float64) {
 	defer r.mu.Unlock()
 
 	score = max(0.0, min(1.0, score))
-	
+
 	r.qualityScores[provider] = score
 	providerQualityScore.WithLabelValues(provider).Set(score)
 
@@ -276,12 +284,12 @@ func (r *CostAwareRouter) GetStats() map[string]interface{} {
 	defer r.mu.RUnlock()
 
 	return map[string]interface{}{
-		"strategy":        r.strategy,
-		"cost_weight":     r.costWeight,
-		"latency_weight":  r.latencyWeight,
-		"quality_weight":  r.qualityWeight,
-		"quality_scores":  r.qualityScores,
-		"latency_p95":     r.latencyP95,
+		"strategy":       r.strategy,
+		"cost_weight":    r.costWeight,
+		"latency_weight": r.latencyWeight,
+		"quality_weight": r.qualityWeight,
+		"quality_scores": r.qualityScores,
+		"latency_p95":    r.latencyP95,
 	}
 }
 
@@ -290,12 +298,12 @@ func (r *CostAwareRouter) initializeDefaults() {
 		quality float64
 		latency float64
 	}{
-		"openai":     {quality: 0.90, latency: 1.5},
-		"gemini":     {quality: 0.85, latency: 1.2},
-		"mistral":    {quality: 0.80, latency: 1.8},
-		"claude":     {quality: 0.92, latency: 2.0},
-		"vertex_ai":  {quality: 0.85, latency: 1.3},
-		"bedrock":    {quality: 0.88, latency: 1.7},
+		"openai":    {quality: 0.90, latency: 1.5},
+		"gemini":    {quality: 0.85, latency: 1.2},
+		"mistral":   {quality: 0.80, latency: 1.8},
+		"claude":    {quality: 0.92, latency: 2.0},
+		"vertex_ai": {quality: 0.85, latency: 1.3},
+		"bedrock":   {quality: 0.88, latency: 1.7},
 	}
 
 	for provider, values := range defaults {

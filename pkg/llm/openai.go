@@ -92,9 +92,9 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string, modelVers
 
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test OpenAI key, returning simulated response")
-		
+
 		time.Sleep(300 * time.Millisecond)
-		
+
 		result.StatusCode = http.StatusOK
 		result.Response = "This is a simulated response for testing purposes. The actual OpenAI model is currently unavailable. This response allows testing of the copy and download functionality."
 		result.InputTokens = len(query) / 4
@@ -102,7 +102,7 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string, modelVers
 		result.TotalTokens = result.InputTokens + result.OutputTokens
 		result.NumTokens = result.TotalTokens
 		result.ResponseTime = time.Since(startTime).Milliseconds()
-		
+
 		return result, nil
 	}
 
@@ -156,12 +156,12 @@ func (c *OpenAIClient) executeQuery(ctx context.Context, query string, modelVers
 		if resp.StatusCode == http.StatusTooManyRequests {
 			return nil, myerrors.NewRateLimitError(string(models.OpenAI))
 		}
-		
+
 		errorMsg := openAIResp.Error.Message
 		if errorMsg == "" {
 			errorMsg = fmt.Sprintf("API error with status code: %d", resp.StatusCode)
 		}
-		
+
 		return nil, myerrors.NewModelError(string(models.OpenAI), resp.StatusCode, fmt.Errorf("%s", errorMsg), resp.StatusCode >= 500)
 	}
 
@@ -182,7 +182,7 @@ func (c *OpenAIClient) CheckAvailability() bool {
 	if c.apiKey == "" {
 		return false
 	}
-	
+
 	if strings.HasPrefix(c.apiKey, "test_") {
 		logrus.Info("Using test OpenAI key, assuming service is available")
 		return true

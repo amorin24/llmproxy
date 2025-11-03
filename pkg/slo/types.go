@@ -7,21 +7,21 @@ import (
 )
 
 type SLO struct {
-	Provider         models.ModelType
-	LatencyP95Target time.Duration // Target: < 2s
-	LatencyP99Target time.Duration // Target: < 5s
-	ErrorRateTarget  float64       // Target: < 1% (0.01)
-	AvailabilityTarget float64     // Target: > 99.5% (0.995)
+	Provider           models.ModelType
+	LatencyP95Target   time.Duration // Target: < 2s
+	LatencyP99Target   time.Duration // Target: < 5s
+	ErrorRateTarget    float64       // Target: < 1% (0.01)
+	AvailabilityTarget float64       // Target: > 99.5% (0.995)
 }
 
 type SLOMetrics struct {
-	Provider         models.ModelType
-	LatencyP95       time.Duration
-	LatencyP99       time.Duration
-	ErrorRate        float64
-	Availability     float64
-	ErrorBudget      float64 // Remaining error budget (0-1)
-	LastUpdated      time.Time
+	Provider     models.ModelType
+	LatencyP95   time.Duration
+	LatencyP99   time.Duration
+	ErrorRate    float64
+	Availability float64
+	ErrorBudget  float64 // Remaining error budget (0-1)
+	LastUpdated  time.Time
 }
 
 type SLOViolation struct {
@@ -34,12 +34,12 @@ type SLOViolation struct {
 }
 
 type ErrorBudget struct {
-	Provider       models.ModelType
-	TotalRequests  int64
-	FailedRequests int64
+	Provider        models.ModelType
+	TotalRequests   int64
+	FailedRequests  int64
 	BudgetRemaining float64 // 0-1, where 1 = 100% budget remaining
-	WindowStart    time.Time
-	WindowEnd      time.Time
+	WindowStart     time.Time
+	WindowEnd       time.Time
 }
 
 func DefaultSLOs() map[models.ModelType]SLO {
@@ -48,7 +48,7 @@ func DefaultSLOs() map[models.ModelType]SLO {
 			Provider:           models.OpenAI,
 			LatencyP95Target:   2 * time.Second,
 			LatencyP99Target:   5 * time.Second,
-			ErrorRateTarget:    0.01, // 1%
+			ErrorRateTarget:    0.01,  // 1%
 			AvailabilityTarget: 0.995, // 99.5%
 		},
 		models.Gemini: {

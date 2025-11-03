@@ -50,9 +50,9 @@ type InflightCounter struct {
 }
 
 type ShutdownConfig struct {
-	Timeout         time.Duration
-	GracePeriod     time.Duration
-	Signals         []os.Signal
+	Timeout     time.Duration
+	GracePeriod time.Duration
+	Signals     []os.Signal
 }
 
 func NewShutdownHandler(config ShutdownConfig) *ShutdownHandler {
@@ -241,7 +241,6 @@ func (ic *InflightCounter) Count() int64 {
 	defer ic.mu.RUnlock()
 	return ic.count
 }
-
 
 func HTTPServerShutdownHook(name string, shutdownFunc func(ctx context.Context) error) ShutdownHook {
 	return ShutdownHook{

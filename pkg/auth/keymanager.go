@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -35,11 +34,11 @@ var (
 )
 
 type KeyManager struct {
-	store      KeyStore
-	encryptor  *Encryptor
-	rotator    *KeyRotator
-	mu         sync.RWMutex
-	auditLog   AuditLogger
+	store     KeyStore
+	encryptor *Encryptor
+	rotator   *KeyRotator
+	mu        sync.RWMutex
+	auditLog  AuditLogger
 }
 
 type APIKey struct {
@@ -75,18 +74,18 @@ type Encryptor struct {
 }
 
 type KeyRotator struct {
-	manager         *KeyManager
+	manager          *KeyManager
 	rotationInterval time.Duration
-	ticker          *time.Ticker
-	stopCh          chan struct{}
+	ticker           *time.Ticker
+	stopCh           chan struct{}
 }
 
 type KeyManagerConfig struct {
-	Store              KeyStore
-	EncryptionKey      string
-	RotationInterval   time.Duration
-	AuditLog           AuditLogger
-	AutoRotateEnabled  bool
+	Store             KeyStore
+	EncryptionKey     string
+	RotationInterval  time.Duration
+	AuditLog          AuditLogger
+	AutoRotateEnabled bool
 }
 
 func NewKeyManager(config KeyManagerConfig) (*KeyManager, error) {
@@ -344,8 +343,9 @@ func (e *Encryptor) Decrypt(ciphertext string) (string, error) {
 		return "", fmt.Errorf("ciphertext too short")
 	}
 
-	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	nonce := data[:nonceSize]
+	ciphertextBytes := data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertextBytes, nil)
 	if err != nil {
 		return "", err
 	}
