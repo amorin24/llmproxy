@@ -17,9 +17,9 @@ export const downloadAsPDF = async (text: string, title: string, filename: strin
     
     script.onload = () => {
       try {
-        const { jsPDF } = (window as { jspdf: { jsPDF: new () => {
+        const { jsPDF } = (window as unknown as { jspdf: { jsPDF: new () => {
           setFontSize: (size: number) => void;
-          text: (text: string, x: number, y: number) => void;
+          text: (text: string | string[], x: number, y: number) => void;
           splitTextToSize: (text: string, width: number) => string[];
           save: (filename: string) => void;
         } } }).jspdf;
@@ -57,7 +57,7 @@ export const downloadAsDOCX = async (text: string, title: string, filename: stri
     
     script.onload = () => {
       try {
-        const { Document, Packer, Paragraph, TextRun } = (window as { docx: {
+        const { Document, Packer, Paragraph, TextRun } = (window as unknown as { docx: {
           Document: new (config: unknown) => unknown;
           Packer: { toBlob: (doc: unknown) => Promise<Blob> };
           Paragraph: new (config: unknown) => unknown;
