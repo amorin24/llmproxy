@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -345,8 +344,8 @@ func (e *Encryptor) Decrypt(ciphertext string) (string, error) {
 	}
 
 	nonce := data[:nonceSize]
-	ciphertext := data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	ciphertextBytes := data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertextBytes, nil)
 	if err != nil {
 		return "", err
 	}
